@@ -1,0 +1,273 @@
+"""
+MSDN (Mass-Spring-Damper Network)
+
+"""
+
+
+from utils.network_components import Mass, Spring, Damper, Hammer
+from utils.scanner import Scanner
+from utils.plot_network import PlotMSDNetwork
+import numpy as np
+
+
+# TODO: add hammer interaction
+
+class MSDNetwork():
+    def __init__(self) -> None:
+        self.masses = dict()
+        self.springs = dict()
+        self.dampers = dict()
+
+        self.mass_params = dict() # mass parameters
+        self.masses_motion = dict()
+        self.spring_params = dict() # spring parameters
+
+        self.external_forces = dict()
+
+        self.__hammer_always_on = None
+        self.__hammer_mode = None
+        self.hammer = None
+
+        self.scan = Scanner()
+
+        self.__dt = 1024
+        self.__nresample = 1024
+
+    @property
+    def dt(self):
+        return self.__dt
+    
+    @dt.setter
+    def dt(self, rate: int):
+
+        """
+        set sampling rate
+
+        rate: int, sample rate (in samples)
+        """
+        
+        self.__dt = 1/rate
+    
+    @property
+    def nresample(self):
+        return self.__nresample
+    
+    @nresample.setter
+    def nresample(self, nsamples: int):
+
+        """
+        function table resample factor (table length)
+
+        nresample: int, resample function-table to nresamples samples 
+        """
+        
+        self.__nresample = nsamples
+
+    
+    def add_mass(self, name: str, m: float, pos: list[float], d: float, lock: bool = False) -> None:
+
+        """
+        add mass to the network
+
+        name: str, mass name
+        m: float, mass in kg
+        pos: list[float], position [x, y, z]
+        d: float, damping factor
+        lock: bool, if True the mass is locked (anchored) 
+        """
+
+        mass = Mass(name=name, m=m, pos=pos, d=d, lock=lock)
+        self.masses[name] = mass
+
+        self.mass_params[name] = {
+            "weight": m,
+            "start": pos,
+            "locked": lock
+            }
+
+        self.masses_motion[name] = {
+            "x": [],
+            "y": [],
+            "z": [],
+            "xyz": []
+        }
+    
+    def add_spring(self, name: str, k: float, length: float, m1: str, m2: str) -> None:
+
+        """
+        add spring to the network
+
+        name: str, spring name
+        k: float, stiffness in N/m
+        length: float, spring length in m
+        m1: str, name of the mass anchored to the left
+        m2: str, name of the mass anchored to rhe right
+        """
+
+        spring = Spring(name=name, k=k, length=length, m1=self.masses[m1], m2=self.masses[m2])
+        self.springs[name] = spring
+        self.spring_params[name] = {
+            "stiffness": k,
+            "lenght": length,
+            "link": f"{self.masses[m1].name} < -- > {self.masses[m2].name}"
+        }
+    
+    def add_damper(self, name: str, c: float, spring: str) -> None:
+
+        """
+        add damper to the network
+
+        name: str, damper name
+        c: float, damping factor
+        spring: str, name of spring to add the damper
+        """
+
+        damper = Damper(c=c, m1=self.springs[spring].m1, m2=self.springs[spring].m2)
+        self.dampers[name] = damper
+        self.spring_params[spring].update({"damper": name, "c": c})
+
+    def add_external_force(self, name: str, direction: list[float]) -> None:
+
+        """
+        add external force to the network
+
+        name: str, force name
+        direction: list[float] -> [x, y, z]
+        """
+        
+        self.external_forces[name] = direction
+    
+    def __generate_external_force(self):
+        for force in self.external_forces:
+            f = np.array(self.external_forces[force], dtype=float)
+            for mass in self.masses:
+                f /= self.masses[mass].m
+                self.masses[mass].apply_force(f)
+
+    
+    def add_hammer(self, hammer_path: list[tuple], mode: str, always_on: bool = False, **kwargs) -> None:
+
+        """
+        add hammer to the network
+
+        hammer_path: list[tuple], masses to hit -> [(mass_name, coordinate), ...] 
+        mode: str, hammer type -> ["rand", "sine", "sinc", "sig"]
+        always_on: bool, if True strikes continuously
+        kwargs:
+            path: str, signal path -> sig mode
+            sr: int, signal sample rate -> sig mode
+            skip: float, skip time loaded audio signal, in sec. -> sig mode
+        """
+        
+        self.__hammer_always_on = always_on
+        self.__hammer_mode = mode
+        hammer = Hammer(mass_network=self.masses, hit_masses=hammer_path, mode=mode)
+
+        sig_mode_params = {
+            "path": None, 
+            "sr": 44100, 
+            "skip": 0
+        }
+        
+        sig_mode_params = sig_mode_params | kwargs
+        
+        path = sig_mode_params["path"]
+        sr = sig_mode_params["sr"]
+        skip = sig_mode_params["skip"]
+        hammer.hammer_audio_signal = (path, sr)
+        hammer.skip_time = int(skip * sr)
+
+        self.hammer = hammer
+
+    def add_path(self, path: list[tuple]) -> None:
+
+        """
+        add path
+
+        path: list[tuple], masses path
+        """
+
+        self.scan.path = path
+    
+    def __reset_network(self) -> None:
+
+        """
+        reset network... take the network to zero time
+        """
+
+        for mass in self.masses:
+            self.masses[mass].pos = self.masses[mass].start_pos
+            self.masses[mass].vel = np.zeros(3)
+            self.masses[mass].acc = np.zeros(3)
+            for coord in self.masses_motion[mass]:
+                self.masses_motion[mass][coord] = []
+    
+    def run(self, maprange: list = None, use_hammer: bool = False, scanning: bool = True, plot_mode: bool = False) -> list[list]:
+
+        """
+        set the network in motion
+
+        maprange: list or None, if not None rescale in range [min, max]
+        use_hammer: bool, if True use the hammer
+        scanning: bool, if True generate wavetable, False generate motion data
+        plot_mode: bool, if True plot the animation
+        """
+
+        self.__reset_network()
+
+        motion = {}
+        for m in self.masses:
+            motion[m] = {"x": None, "y": None, "z": None}
+
+
+        while True:
+            
+            for spring in self.springs:
+                self.springs[spring].generate_spring_force()
+
+            for damper in self.dampers:
+                self.dampers[damper].generate_drag_force()
+            
+            if use_hammer and self.__hammer_always_on:
+                self.hammer.generate_hammer_force()
+            
+            if self.external_forces:
+                self.__generate_external_force()
+            
+            for mass in self.masses:
+                motion[mass]["x"] = self.masses[mass].pos[0]
+                motion[mass]["y"] = self.masses[mass].pos[1]
+                motion[mass]["z"] = self.masses[mass].pos[2]
+                
+                self.masses[mass].update_position(dt=self.__dt)
+            
+            if scanning:
+                ft = self.scan.rtscan(masses_motion=motion, maprange=maprange, nresample=self.nresample)
+                y = ft
+            else:
+                y = motion
+            
+            yield y
+    
+    def plot_network(self, table, ylim: tuple, refresh_time: float) -> None:
+
+        """
+        plot network animation
+
+        table: Generator, function table generator
+        ylim: tuple, limit on y axis
+        refresh_time: float, refresh time
+        """
+
+        p = PlotMSDNetwork()
+        p.rtplot(table=table, table_length=self.nresample, ylim=ylim, refresh_time=refresh_time)
+
+            
+
+    
+
+
+
+
+
+
