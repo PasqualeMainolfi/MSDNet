@@ -14,13 +14,13 @@ net.add_mass(name="m7", m=1, pos=[7, 1, 0], d=0.9999, lock=False)
 net.add_mass(name="wall_dx", m=1, pos=[8, 1, 0], d=1, lock=True)
 
 # masse a terra y
-net.add_mass(name="m9", m=1, pos=[1, 0, 0], d=1, lock=True)
-net.add_mass(name="m10", m=1, pos=[2, 0, 0], d=1, lock=True)
-net.add_mass(name="m11", m=1, pos=[3, 0, 0], d=1, lock=True)
-net.add_mass(name="m12", m=1, pos=[4, 0, 0], d=1, lock=True)
-net.add_mass(name="m13", m=1, pos=[5, 0, 0], d=1, lock=True)
-net.add_mass(name="m14", m=1, pos=[6, 0, 0], d=1, lock=True)
-net.add_mass(name="m15", m=1, pos=[7, 0, 0], d=1, lock=True)
+net.add_mass(name="m8", m=1, pos=[1, 0, 0], d=1, lock=True)
+net.add_mass(name="m9", m=1, pos=[2, 0, 0], d=1, lock=True)
+net.add_mass(name="m10", m=1, pos=[3, 0, 0], d=1, lock=True)
+net.add_mass(name="m11", m=1, pos=[4, 0, 0], d=1, lock=True)
+net.add_mass(name="m12", m=1, pos=[5, 0, 0], d=1, lock=True)
+net.add_mass(name="m13", m=1, pos=[6, 0, 0], d=1, lock=True)
+net.add_mass(name="m14", m=1, pos=[7, 0, 0], d=1, lock=True)
 
 # masse a terra z
 # net.add_mass(name="m16", m=1, pos=[1, 1, -1], d=.9999, lock=True)
@@ -42,13 +42,13 @@ net.add_spring(name="s6", k=30, length=1, m1="m7", m2="m6")
 net.add_spring(name="s_wall_dx", k=30, length=1, m1="wall_dx", m2="m7")
 
 # molle a terra y
-net.add_spring(name="s7", k=30, length=1, m1="m1", m2="m9")
-net.add_spring(name="s8", k=30, length=1, m1="m2", m2="m10")
-net.add_spring(name="s9", k=30, length=1, m1="m3", m2="m11")
-net.add_spring(name="s10", k=30, length=1, m1="m4", m2="m12")
-net.add_spring(name="s11", k=30, length=1, m1="m5", m2="m13")
-net.add_spring(name="s12", k=30, length=1, m1="m6", m2="m14")
-net.add_spring(name="s13", k=30, length=1, m1="m7", m2="m15")
+net.add_spring(name="s7", k=30, length=1, m1="m1", m2="m8")
+net.add_spring(name="s8", k=30, length=1, m1="m2", m2="m9")
+net.add_spring(name="s9", k=30, length=1, m1="m3", m2="m10")
+net.add_spring(name="s10", k=30, length=1, m1="m4", m2="m11")
+net.add_spring(name="s11", k=30, length=1, m1="m5", m2="m12")
+net.add_spring(name="s12", k=30, length=1, m1="m6", m2="m13")
+net.add_spring(name="s13", k=30, length=1, m1="m7", m2="m14")
 
 # molle a terra z
 # net.add_spring(name="s14", k=10, length=1, m1="m1", m2="m16")
@@ -82,5 +82,8 @@ net.nresample = 4096
 path = [("wall_sx", "z"), ("m1", "z"), ("m2", "z"), ("m3", "z"), ("m4", "z"), ("m5", "z"), ("m6", "z"), ("m7", "z"), ("m5", "z"), ("m6", "z"), ("m7", "z"), ("m4", "z"), ("m5", "z"), ("m6", "z"), ("wall_dx", "z")]
 net.add_path(path=path)
 
-table = net.run()
-net.plot_network(table=table, ylim=[-1, 1], refresh_time=100)
+hammer_path = net.generate_random_path(path_length=10, coordinate="z")
+net.add_hammer(hammer_path=hammer_path, shape="sine", mode="one_shot")
+
+table = net.run(use_hammer=True)
+net.plot_network(table=table, ylim=[-1, 1], refresh_time=10)

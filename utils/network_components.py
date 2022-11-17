@@ -110,7 +110,7 @@ class Damper:
 
 class Hammer:
 
-    def __init__(self, masses_network: dict, hit_masses: list[tuple], mode: str) -> None:
+    def __init__(self, masses_network: dict, hit_masses: list[tuple], shape: str) -> None:
 
 
         """
@@ -123,7 +123,7 @@ class Hammer:
 
 
         self.masses = masses_network
-        self.mode = mode
+        self.shape = shape
         self.hit_masses = hit_masses
         self.__index = {"x": 0, "y": 1, "z": 2}
         self.__force_vector = np.zeros((len(self.hit_masses), 3))
@@ -131,6 +131,8 @@ class Hammer:
         self.__hammer_audio_signal = None
         self.__len_sig = 0
         self.__sig_sr = None
+
+        self.one_shot = False
 
     @property
     def hammer_audio_signal(self):
@@ -167,19 +169,19 @@ class Hammer:
         q = len(self.hit_masses)
         for n, m in enumerate(self.hit_masses):
 
-            if self.mode == "rand":
+            if self.shape == "rand":
                 self.__force_vector[n][self.__index[m[1]]] = np.random.uniform(low=-0.707, high=0.707)
 
-            if self.mode == "sine":
+            if self.shape == "sine":
                 self.__force_vector[n][self.__index[m[1]]] = np.sin(2 * np.pi * n/q)
 
-            if self.mode == "sinc":
+            if self.shape == "sinc":
                 if n != q//2:
                     self.__force_vector[n][self.__index[m[1]]] = np.sin(np.pi * n/q)/(n + 1)
                 else:
                     self.__force_vector[n][self.__index[m[1]]] = 1
 
-            if self.mode == "sig":
+            if self.shape == "sig":
                 index_audio_vec = self.skip_time%self.__len_sig
                 self.__force_vector[n][[self.__index[m[1]]]] = self.hammer_audio_signal[index_audio_vec]
                 # print(self.__count + self.skip_time)

@@ -8,9 +8,12 @@ from utils.network_components import Mass, Spring, Damper, Hammer
 from utils.scanner import Scanner
 from utils.plot_network import PlotMSDNetwork
 import numpy as np
+import sys
 
 
 # TODO: add hammer interaction
+# TODO: add function for set network start displacement
+
 
 class MSDNetwork():
     def __init__(self) -> None:
@@ -24,18 +27,17 @@ class MSDNetwork():
 
         self.external_forces = dict()
 
-        self.__hammer_always_on = None
-        self.__hammer_mode = None
+        self._hammer_mode = None
         self.hammer = None
 
         self.scan = Scanner()
 
-        self.__dt = 1024
-        self.__nresample = 1024
+        self._dt = 10
+        self._nresample = 1024
 
     @property
     def dt(self):
-        return self.__dt
+        return self._dt
     
     @dt.setter
     def dt(self, rate: int):
@@ -46,11 +48,11 @@ class MSDNetwork():
         rate: int, sample rate (in samples)
         """
         
-        self.__dt = 1/rate
+        self._dt = 1/rate
     
     @property
     def nresample(self):
-        return self.__nresample
+        return self._nresample
     
     @nresample.setter
     def nresample(self, nsamples: int):
@@ -61,7 +63,7 @@ class MSDNetwork():
         nresample: int, resample function-table to nresamples samples 
         """
         
-        self.__nresample = nsamples
+        self._nresample = nsamples
 
     
     def add_mass(self, name: str, m: float, pos: list[float], d: float, lock: bool = False) -> None:
@@ -145,37 +147,45 @@ class MSDNetwork():
                 self.masses[mass].apply_force(f)
 
     
-    def add_hammer(self, hammer_path: list[tuple], mode: str, always_on: bool = False, **kwargs) -> None:
+    def add_hammer(self, hammer_path: list[tuple], shape: str, mode: str = "one_shot", **kwargs) -> None:
 
         """
         add hammer to the network
 
         hammer_path: list[tuple], masses to hit -> [(mass_name, coordinate), ...] 
-        mode: str, hammer type -> ["rand", "sine", "sinc", "sig"]
+        shape: str, hammer type -> ["rand", "sine", "sinc", "sig"]
+        mode: str, hammer mode ["one_shot", "always_on"]
         always_on: bool, if True strikes continuously
         kwargs:
-            path: str, signal path -> sig mode
-            sr: int, signal sample rate -> sig mode
-            skip: float, skip time loaded audio signal, in sec. -> sig mode
+            path: str, signal path -> sig shape
+            sr: int, signal sample rate -> sig shape
+            skip: float, skip time loaded audio signal, in sec. -> sig shape
         """
         
-        self.__hammer_always_on = always_on
-        self.__hammer_mode = mode
-        hammer = Hammer(mass_network=self.masses, hit_masses=hammer_path, mode=mode)
+        self._hammer_mode = mode
+
+        try:
+            assert mode in ["one_shot", "always_on"]
+        except:
+            print("[ERROR] hammer mode not implemented!\n")
+            sys.exit(0)
+
+        hammer = Hammer(masses_network=self.masses, hit_masses=hammer_path, shape=shape)
 
         sig_mode_params = {
-            "path": None, 
+            "path": "", 
             "sr": 44100, 
             "skip": 0
         }
         
         sig_mode_params = sig_mode_params | kwargs
-        
-        path = sig_mode_params["path"]
-        sr = sig_mode_params["sr"]
-        skip = sig_mode_params["skip"]
-        hammer.hammer_audio_signal = (path, sr)
-        hammer.skip_time = int(skip * sr)
+
+        if hammer.shape == "sig":
+            path = sig_mode_params["path"]
+            sr = sig_mode_params["sr"]
+            skip = sig_mode_params["skip"]
+            hammer.hammer_audio_signal = (path, sr)
+            hammer.skip_time = int(skip * sr)
 
         self.hammer = hammer
 
@@ -188,6 +198,32 @@ class MSDNetwork():
         """
 
         self.scan.path = path
+    
+    def generate_random_path(self, path_length: int, coordinate: str = "xyz") -> list[tuple]:
+
+        """
+        generate random path
+
+        path_lenght: int, length of the path
+        coordinate: str, [x, y, z, xyz]
+
+        return: list[tuple]
+        """
+
+        coord = ["x", "y", "z", "xyz"]
+
+        try:
+            assert coordinate in coord
+        except:
+            print("[ERROR] coordinate must be [x, y, z, xyz]!\n")
+            sys.exit(0)
+        
+        path = []
+        for i in range(path_length):
+            m = np.random.choice(list(self.masses.keys()))
+            c = np.random.choice(coord[:-1]) if coordinate == "xyz" else coordinate
+            path.append((m, c))
+        return path
     
     def __reset_network(self) -> None:
 
@@ -219,7 +255,6 @@ class MSDNetwork():
         for m in self.masses:
             motion[m] = {"x": None, "y": None, "z": None}
 
-
         while True:
             
             for spring in self.springs:
@@ -228,8 +263,9 @@ class MSDNetwork():
             for damper in self.dampers:
                 self.dampers[damper].generate_drag_force()
             
-            if use_hammer and self.__hammer_always_on:
+            if use_hammer:
                 self.hammer.generate_hammer_force()
+                use_hammer = False if self._hammer_mode == "one_shot" else True
             
             if self.external_forces:
                 self.__generate_external_force()
@@ -239,7 +275,7 @@ class MSDNetwork():
                 motion[mass]["y"] = self.masses[mass].pos[1]
                 motion[mass]["z"] = self.masses[mass].pos[2]
                 
-                self.masses[mass].update_position(dt=self.__dt)
+                self.masses[mass].update_position(dt=self._dt)
             
             if scanning:
                 ft = self.scan.rtscan(masses_motion=motion, maprange=maprange, nresample=self.nresample)
