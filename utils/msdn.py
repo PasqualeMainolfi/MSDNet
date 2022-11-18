@@ -3,7 +3,7 @@ MSDN (Mass-Spring-Damper Network)
 
 """
 
-
+from typing import Generator, Union
 from utils.network_components import Mass, Spring, Damper, Hammer
 from utils.scanner import Scanner
 from utils.plot_network import PlotMSDNetwork
@@ -22,7 +22,7 @@ class MSDNetwork():
         self.dampers = dict()
 
         self.mass_params = dict() # mass parameters
-        self.masses_motion = dict()
+        self.masses_motion = dict() # motion of masses
         self.spring_params = dict() # spring parameters
 
         self.external_forces = dict()
@@ -32,7 +32,7 @@ class MSDNetwork():
 
         self.scan = Scanner()
 
-        self._dt = 10
+        self._dt = 0.1
         self._nresample = 1024
 
     @property
@@ -40,15 +40,15 @@ class MSDNetwork():
         return self._dt
     
     @dt.setter
-    def dt(self, rate: int):
+    def dt(self, dtime: int):
 
         """
-        set sampling rate
+        set sampling time
 
-        rate: int, sample rate (in samples)
+        dtime: int, sample time (in sec)
         """
         
-        self._dt = 1/rate
+        self._dt = dtime
     
     @property
     def nresample(self):
@@ -66,7 +66,7 @@ class MSDNetwork():
         self._nresample = nsamples
 
     
-    def add_mass(self, name: str, m: float, pos: list[float], d: float, lock: bool = False) -> None:
+    def add_mass(self, name: str, m: float, pos: list[float], d: float, anchored: bool = False) -> None:
 
         """
         add mass to the network
@@ -75,16 +75,16 @@ class MSDNetwork():
         m: float, mass in kg
         pos: list[float], position [x, y, z]
         d: float, damping factor
-        lock: bool, if True the mass is locked (anchored) 
+        anchored: bool, if True the mass is anchored
         """
 
-        mass = Mass(name=name, m=m, pos=pos, d=d, lock=lock)
+        mass = Mass(name=name, m=m, pos=pos, d=d, anchored=anchored)
         self.masses[name] = mass
 
         self.mass_params[name] = {
             "weight": m,
             "start": pos,
-            "locked": lock
+            "anchored": anchored
             }
 
         self.masses_motion[name] = {
@@ -170,7 +170,7 @@ class MSDNetwork():
             print("[ERROR] hammer mode not implemented!\n")
             sys.exit(0)
 
-        hammer = Hammer(masses_network=self.masses, hit_masses=hammer_path, shape=shape)
+        hammer = Hammer(masses_network=self.masses, hammer_path=hammer_path, shape=shape)
 
         sig_mode_params = {
             "path": "", 
@@ -238,7 +238,7 @@ class MSDNetwork():
             for coord in self.masses_motion[mass]:
                 self.masses_motion[mass][coord] = []
     
-    def run(self, maprange: list = None, use_hammer: bool = False, scanning: bool = True, plot_mode: bool = False) -> list[list]:
+    def run(self, maprange: list = None, use_hammer: bool = False, scanning: bool = True, plot_mode: bool = False) -> Union[Generator, dict]:
 
         """
         set the network in motion
@@ -247,6 +247,8 @@ class MSDNetwork():
         use_hammer: bool, if True use the hammer
         scanning: bool, if True generate wavetable, False generate motion data
         plot_mode: bool, if True plot the animation
+
+        return: Union[Iterator, dict]
         """
 
         self.__reset_network()
@@ -285,7 +287,7 @@ class MSDNetwork():
             
             yield y
     
-    def plot_network(self, table, ylim: tuple, refresh_time: float) -> None:
+    def plot_network(self, table: Generator, ylim: tuple, refresh_time: float) -> None:
 
         """
         plot network animation
