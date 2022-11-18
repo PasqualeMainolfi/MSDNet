@@ -19,15 +19,12 @@ class PlotMSDNetwork():
 
         fig, ax = plt.subplots(figsize=(15, 10))
         n = table_length
-
         x = [j for j in range(n)]
-
         def update(i):
             y = next(table)
             ax.clear()
             ax.set_ylim(ylim)
             ax.plot(x, y)
-        
         animation = animate.FuncAnimation(fig, update, interval=refresh_time)
         plt.show()
 

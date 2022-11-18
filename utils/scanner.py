@@ -3,7 +3,7 @@ Scan the path from MSDNetwork
 """
 
 import numpy as np
-from scipy import signal
+from scipy import signal, interpolate
 
 
 class Scanner():
@@ -20,7 +20,7 @@ class Scanner():
         self.__path = path
         self.__vector_path = np.zeros(len(path))
     
-    def rtscan(self, masses_motion: dict, maprange: list, nresample: int) -> list[float]:
+    def rtscan(self, masses_motion: dict, maprange: list) -> list[float]:
 
         """
         generates the function-table in real time
@@ -39,8 +39,7 @@ class Scanner():
             current_position = motion[mass][position]
             self.__vector_path[n] = current_position
         
-        y = signal.resample(self.__vector_path, nresample)
-        y = np.interp(y, [y.min(), y.max()], maprange) if maprange is not None else y
+        y = np.interp(y, [y.min(), y.max()], maprange) if maprange is not None else self.__vector_path
 
         return y 
 

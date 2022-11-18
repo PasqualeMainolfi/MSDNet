@@ -80,7 +80,7 @@ class Spring:
     def generate_spring_force(self) -> None:
 
         """
-        F = -k · x
+        F = -k · x (Hooke's law)
         """
 
         force = np.subtract(self.m2.pos, self.m1.pos)

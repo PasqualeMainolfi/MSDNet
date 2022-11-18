@@ -33,7 +33,6 @@ class MSDNetwork():
         self.scan = Scanner()
 
         self._dt = 0.1
-        self._nresample = 1024
 
     @property
     def dt(self):
@@ -50,22 +49,6 @@ class MSDNetwork():
         
         self._dt = dtime
     
-    @property
-    def nresample(self):
-        return self._nresample
-    
-    @nresample.setter
-    def nresample(self, nsamples: int):
-
-        """
-        function table resample factor (table length)
-
-        nresample: int, resample function-table to nresamples samples 
-        """
-        
-        self._nresample = nsamples
-
-    
     def add_mass(self, name: str, m: float, pos: list[float], d: float, anchored: bool = False) -> None:
 
         """
@@ -74,7 +57,7 @@ class MSDNetwork():
         name: str, mass name
         m: float, mass in kg
         pos: list[float], position [x, y, z]
-        d: float, damping factor
+        d: float, air friction factor
         anchored: bool, if True the mass is anchored
         """
 
@@ -280,7 +263,7 @@ class MSDNetwork():
                 self.masses[mass].update_position(dt=self._dt)
             
             if scanning:
-                ft = self.scan.rtscan(masses_motion=motion, maprange=maprange, nresample=self.nresample)
+                ft = self.scan.rtscan(masses_motion=motion, maprange=maprange)
                 y = ft
             else:
                 y = motion
@@ -297,8 +280,10 @@ class MSDNetwork():
         refresh_time: float, refresh time
         """
 
+        n = len(self.scan.path)
+
         p = PlotMSDNetwork()
-        p.rtplot(table=table, table_length=self.nresample, ylim=ylim, refresh_time=refresh_time)
+        p.rtplot(table=table, table_length=n, ylim=ylim, refresh_time=refresh_time)
 
             
 
