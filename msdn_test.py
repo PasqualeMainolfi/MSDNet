@@ -14,7 +14,6 @@ net.add_mass(name="m7", m=0.15, pos=[7, 0, 0], d=0.99, anchored=False)
 net.add_mass(name="m8", m=0.15, pos=[8, 0, 0], d=0.99, anchored=False)
 net.add_mass(name="m9", m=0.15, pos=[9, 0, 0], d=0.99, anchored=False)
 
-
 # molle
 net.add_spring(name="s0", k=0.3, length=0.01, m1="m0", m2="m1")
 net.add_spring(name="s1", k=0.3, length=0.01, m1="m1", m2="m2")
@@ -27,13 +26,13 @@ net.add_spring(name="s7", k=0.3, length=0.01, m1="m7", m2="m8")
 net.add_spring(name="s8", k=0.3, length=0.01, m1="m8", m2="m9")
 
 # smorzatori
-net.add_damper(name="d1", c=0.01, spring="s1")
-net.add_damper(name="d2", c=0.01, spring="s2")
-net.add_damper(name="d3", c=0.01, spring="s3")
-net.add_damper(name="d4", c=0.01, spring="s4")
-net.add_damper(name="d5", c=0.01, spring="s5")
-net.add_damper(name="d6", c=0.01, spring="s6")
-net.add_damper(name="d7", c=0.01, spring="s7")
+net.add_damper(name="d1", c=0.1, spring="s1")
+net.add_damper(name="d2", c=0.1, spring="s2")
+net.add_damper(name="d3", c=0.1, spring="s3")
+net.add_damper(name="d4", c=0.1, spring="s4")
+net.add_damper(name="d5", c=0.1, spring="s5")
+net.add_damper(name="d6", c=0.1, spring="s6")
+net.add_damper(name="d7", c=0.1, spring="s7")
 
 net.dt = 0.3
 net.nresample = 1024

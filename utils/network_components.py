@@ -7,7 +7,11 @@ MSDNetwork components: mass, spring, damper and hammer
 import numpy as np
 import librosa
 
-EPS = 1e-12
+def magnitude(v: list) -> float:
+    eps = 1e-12
+    m_ = np.linalg.norm(v)
+    m = m_ if m_ != 0 else eps
+    return m
 
 class Mass:
 
@@ -74,13 +78,19 @@ class Spring:
         self.m2 = m2
 
     def generate_spring_force(self) -> None:
+
+        """
+        F = -k · x
+        """
+
         force = np.subtract(self.m2.pos, self.m1.pos)
-        mag = np.linalg.norm(force) + EPS
-        ext = mag - self.length
+        mag = magnitude(v=force)
+        x = mag - self.length
         force = force/mag
-        force = force * self.k * ext
+        force = force * self.k * x
         self.m1.apply_force(force)
-        self.m2.apply_force(-1 * force)
+        force *= -1
+        self.m2.apply_force(force)
 
 
 class Damper:
@@ -91,7 +101,7 @@ class Damper:
         """
         Create damper
 
-        c: float, damping factor
+        c: float, drag coefficient
         m1: Mass, mass anchored to the left of the spring
         m2: Mass, mass anchored to the left of the spring
         """
@@ -101,12 +111,18 @@ class Damper:
         self.m2 = m2
 
     def generate_drag_force(self) -> None:
+
+        """
+        F = 0.5 · pv^2 · C · A = -c·v^2
+        """
+        
         drag = np.subtract(self.m2.vel, self.m1.vel)
-        mag = np.linalg.norm(drag) + EPS
+        mag = magnitude(v=drag)
         drag = drag/mag
-        drag = drag * (self.c * np.power(mag, 2))
+        drag = drag * self.c * np.power(mag, 2)
         self.m1.apply_force(drag)
-        self.m2.apply_force(-1 * drag)
+        drag *= -1
+        self.m2.apply_force(drag)
 
 
 class Hammer:
