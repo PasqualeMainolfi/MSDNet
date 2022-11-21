@@ -107,5 +107,6 @@ net.show_path_in_motion(table=net_scan, axes_lim=[-1, 1])
 # or all network
 net.show_network_in_motion(table=net_scan, axes_lim=[-1, 1]) 
 ``` 
+
 for any questions: mnlpql@gmail.com  
 $\copyright$ PasqualeMainolfi2022

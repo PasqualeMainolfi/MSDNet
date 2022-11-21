@@ -49,7 +49,7 @@ net.add_path(path=path)
 
 hammer_path = net.generate_random_path(path_length=7, coordinate="y")
 net.add_hammer_path(path=path)
-net.add_hammer(shape="sinc", mode="one_shot")
+net.add_hammer(shape="sine", mode="one_shot")
 
 masses_motion = net.activate_network(use_hammer=True)
 net_scan = net.scan_network(masses_motion=masses_motion)

@@ -4,12 +4,12 @@ MSDN (Mass-Spring-Damper Network)
 """
 
 from typing import Generator
-from utils.network_components import Mass, Spring, Damper, Hammer
-from utils.scanner import Scanner
+from network_components import Mass, Spring, Damper, Hammer
+from scanner import Scanner
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib import animation
 
 
 # TODO: add function that return path or network scan from network scan
@@ -40,7 +40,7 @@ class MSDNet():
         return self._dt
     
     @dt.setter
-    def dt(self, dtime: int):
+    def dt(self, dtime: float):
 
         """
         set sampling time
@@ -339,7 +339,10 @@ class MSDNet():
             ax.set_ylabel("Y")
             ax.set_zlabel("Z")
         
-        animation = FuncAnimation(fig, update, interval=refresh_time)
+        ani = animation.FuncAnimation(fig, update, interval=refresh_time)
+        # write = animation.FFMpegWriter(fps=60)
+        # ani.save("network.mp4", writer=write)
+        # plt.close()
         plt.show()
     
     def show_path_in_motion(self, table: Generator,  axes_lim: tuple, refresh_time: int = 10) -> None:
@@ -365,7 +368,7 @@ class MSDNet():
             ax.set_xlabel("X")
             ax.set_ylabel("Y")
 
-        animation = FuncAnimation(fig, update, interval=refresh_time)
+        ani = animation.FuncAnimation(fig, update, interval=refresh_time)
         plt.show()
     
     # def show_network(self, table, axes_lim, refresh_time: int = 10):
