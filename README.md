@@ -108,5 +108,17 @@ net.show_path_in_motion(table=net_scan, axes_lim=[-1, 1])
 net.show_network_in_motion(table=net_scan, axes_lim=[-1, 1]) 
 ``` 
 
+some video example...
+
+
+
+https://user-images.githubusercontent.com/53559987/203181291-58da1f3e-614f-4378-9784-d6e6ba9f1849.mp4
+
+
+
+https://user-images.githubusercontent.com/53559987/203181391-29682941-ecaa-44e1-9544-cbdda019e736.mp4
+
+
+
 for any questions: mnlpql@gmail.com  
-$\copyright$ PasqualeMainolfi2022
+© PasqualeMainolfi2022
