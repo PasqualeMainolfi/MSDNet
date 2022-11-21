@@ -3,7 +3,7 @@ Scan the path from MSDNetwork
 """
 
 import numpy as np
-from scipy import signal, interpolate
+import sys
 
 # def inter(x, n):
 #     k = n - 1
@@ -21,57 +21,10 @@ from scipy import signal, interpolate
 
 
 class Scanner():
-    def __init__(self) -> None:
-        self.__path = None
-        self.__vector_path = None
+    def __init__(self, path: list[tuple]) -> None:
+        self.path = path
     
-    @property
-    def path(self):
-        return self.__path
-    
-    @path.setter
-    def path(self, path: list[float]) -> None:
-        self.__path = path
-        self.__vector_path = np.zeros(len(path))
-
-    def __rtscan_path(self, masses_motion):
-
-        v = self.__vector_path
-        motion = masses_motion
-
-        # scan path
-        for n, path in enumerate(self.__path):
-            mass, position = path[0], path[1]
-            current_position = motion[mass][position]
-            v[n] = current_position
-        
-        y = v
-        return y
-    
-    def __rtscan_network(self, masses_motion):
-
-        motion = masses_motion
-        n_mass = len(motion)
-        v = np.zeros((3, n_mass))
-
-        index = {
-            0: "x",
-            1: "y",
-            2: "z"
-        }
-        
-        # all massee motion
-        for i in range(3):
-            for j, mass_name in enumerate(motion):
-                v[i, j] = motion[mass_name][index[i]]
-
-        y = v
-        return y
-
-    
-    def rtscan(self, masses_motion: dict, scan_mode: str) -> list:
-
-        
+    def rtscan(self, masses_motion):
 
         """
         generates the function-table in real time
@@ -82,13 +35,32 @@ class Scanner():
         return: 1D or 2D vector
         """
 
-        if scan_mode == "path":
-            y = self.__rtscan_path(masses_motion=masses_motion)
-        else:
-            y = self.__rtscan_network(masses_motion=masses_motion)
+        motion = masses_motion
+        
+        n_mass = len(motion)
+        net_motion = np.zeros((3, n_mass))
 
-        return y
+        index = {
+            0: "x",
+            1: "y",
+            2: "z"
+        }
+        
+        # all masses motion
+        for i in range(3):
+            for j, mass_name in enumerate(motion):
+                net_motion[i, j] = motion[mass_name][index[i]]
+        
+        path_motion = None if self.path is None else np.zeros(len(self.path))
 
+        if path_motion is not None:
+            # path motion
+            for n, path in enumerate(self.path):
+                mass, position = path[0], path[1]
+                current_position = motion[mass][position]
+                path_motion[n] = current_position
+        
+        return net_motion, path_motion
 
 
 

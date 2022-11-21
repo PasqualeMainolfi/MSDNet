@@ -1,7 +1,7 @@
-from utils.msdn import MSDNetwork
+from utils.msdn import MSDNet
 
 
-net = MSDNetwork()
+net = MSDNet()
 
 N_MASS = 30
 N_SPRING = N_MASS - 1
@@ -19,7 +19,7 @@ C = 0.3
 
 net.dt = DT
 
-# masse
+# masses
 p = -0.5
 for m in range(N_MASS):
     net.add_mass(name=f"m{m}", m=M, pos=[p, p, 0], d=D, anchored=False)
@@ -29,13 +29,13 @@ net.lock_unlock_mass(name="m0", anchored=True)
 net.lock_unlock_mass(name=f"m{N_MASS - 1}", anchored=True)
 
 # add gravity
-# net.add_external_force(name="gravity", direction=[0, -9.8, 0])
+net.add_external_force(name="gravity", direction=[0, -9.8, 0])
 
-# molle
+# springs
 for s in range(N_SPRING):
     net.add_spring(name=f"s{s}", k=K, length=L, m1=f"m{s}", m2=f"m{s+1}")
 
-# smorzatori
+# dampers
 for d in range(N_DAMPER):
     net.add_damper(name=f"d{d}", c=C, spring=f"s{d}")
 
@@ -47,10 +47,12 @@ for i in range(N_MASS):
 
 net.add_path(path=path)
 
-hammer_path = net.generate_random_path(path_length=15, coordinate="y")
-net.add_hammer(hammer_path=path, shape="sine", mode="one_shot")
+hammer_path = net.generate_random_path(path_length=7, coordinate="y")
+net.add_hammer_path(path=path)
+net.add_hammer(shape="sinc", mode="one_shot")
 
-masses_motion = net.start_motion(use_hammer=True)
-scan = net.scan_network(masses_motion=masses_motion, scan_mode="network")
+masses_motion = net.activate_network(use_hammer=True)
+net_scan = net.scan_network(masses_motion=masses_motion)
 
-net.plot_all_network(table=scan, axes_lim=[-0.75, 0.75]) 
+net.show_network_in_motion(table=net_scan, axes_lim=[-1, 1]) 
+# net.show_path_in_motion(table=net_scan, axes_lim=[-1, 1]) 
