@@ -13,7 +13,7 @@ def magnitude(v: list) -> float:
     m = m_ if m_ != 0 else eps
     return m
 
-class Mass:
+class Mass():
 
     def __init__(self, name: str, m: float, pos: list[float], d: float, anchored: bool = False) -> None:
 
@@ -56,7 +56,7 @@ class Mass:
         self.acc = np.zeros(3)
 
 
-class Spring:
+class Spring():
 
     def __init__(self, name: str, k: float, length: float, m1: Mass, m2: Mass) -> None:
 
@@ -93,7 +93,7 @@ class Spring:
         self.m2.apply_force(force)
 
 
-class Damper:
+class Damper():
 
     def __init__(self, c: float, m1: Mass, m2: Mass) -> None:
 
@@ -125,7 +125,7 @@ class Damper:
         self.m2.apply_force(drag)
 
 
-class Hammer:
+class Hammer():
 
     def __init__(self, masses_network: dict, hammer_path: list[tuple], shape: str) -> None:
 
@@ -181,7 +181,7 @@ class Hammer:
         self.__audio_vector_index = skip
 
     # generate hammer
-    def _generate_hammer(self) -> None:
+    def _generate_displacement(self) -> None:
 
         coord = {
             "x": 0,
@@ -196,14 +196,14 @@ class Hammer:
             ndx = m[1]
 
             if self.shape == "rand":
-                self.__force_vector[n][coord[ndx]] = np.random.uniform(low=-0.707, high=0.707)
+                self.__force_vector[n][coord[ndx]] = np.random.uniform(low=-1, high=1)
 
             if self.shape == "sine":
                 self.__force_vector[n][coord[ndx]] = np.sin(2 * np.pi * n/q)
 
             if self.shape == "sinc":
                 if n != q//2:
-                    self.__force_vector[n][coord[ndx]] = np.sin(np.pi * n/q)/(n + 1)
+                    self.__force_vector[n][coord[ndx]] = np.sin(np.pi * n/q)
                 else:
                     self.__force_vector[n][coord[ndx]] = 1
 
@@ -215,6 +215,6 @@ class Hammer:
 
     # generate hammer force
     def generate_hammer_force(self) -> None:
-        self._generate_hammer()
+        self._generate_displacement()
         for n, m in enumerate(self.hammer_path):
             self.masses[m[0]].apply_force(self.__force_vector[n])

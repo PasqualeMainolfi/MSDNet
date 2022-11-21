@@ -1,48 +1,56 @@
 from utils.msdn import MSDNetwork
-from math import sqrt
 
 
 net = MSDNetwork()
 
-RAD2 = sqrt(2)
+N_MASS = 30
+N_SPRING = N_MASS - 1
+N_DAMPER = N_SPRING
+
+DT = 0.5
+
+l = 1/N_MASS
+
+L = (l**2 + l**2)**0.5
+M = 8
+D = 0.999
+K = 2.5
+C = 0.3
+
+net.dt = DT
 
 # masse
-net.add_mass(name="m1", m=0.15, pos=[1, 1, 0], d=0.999, anchored=True)
-net.add_mass(name="m2", m=0.15, pos=[2, 2, 0], d=0.999, anchored=False)
-net.add_mass(name="m3", m=0.15, pos=[3, 3, 0], d=0.999, anchored=False)
-net.add_mass(name="m4", m=0.15, pos=[4, 4, 0], d=0.999, anchored=False)
-net.add_mass(name="m5", m=0.15, pos=[5, 5, 0], d=0.999, anchored=False)
-net.add_mass(name="m6", m=0.15, pos=[6, 6, 0], d=0.999, anchored=False)
-net.add_mass(name="m7", m=0.15, pos=[7, 7, 0], d=0.999, anchored=False)
-net.add_mass(name="m8", m=0.15, pos=[8, 8, 0], d=0.999, anchored=False)
-net.add_mass(name="m9", m=0.15, pos=[9, 9, 0], d=0.999, anchored=True)
+p = -0.5
+for m in range(N_MASS):
+    net.add_mass(name=f"m{m}", m=M, pos=[p, p, 0], d=D, anchored=False)
+    p += 1/(N_MASS - 1)
+
+net.lock_unlock_mass(name="m0", anchored=True)
+net.lock_unlock_mass(name=f"m{N_MASS - 1}", anchored=True)
+
+# add gravity
+# net.add_external_force(name="gravity", direction=[0, -9.8, 0])
 
 # molle
-net.add_spring(name="s1", k=0.1, length=RAD2, m1="m1", m2="m2")
-net.add_spring(name="s2", k=0.1, length=RAD2, m1="m2", m2="m3")
-net.add_spring(name="s3", k=0.1, length=RAD2, m1="m3", m2="m4")
-net.add_spring(name="s4", k=0.1, length=RAD2, m1="m4", m2="m5")
-net.add_spring(name="s5", k=0.1, length=RAD2, m1="m5", m2="m6")
-net.add_spring(name="s6", k=0.1, length=RAD2, m1="m6", m2="m7")
-net.add_spring(name="s7", k=0.1, length=RAD2, m1="m7", m2="m8")
-net.add_spring(name="s8", k=0.1, length=RAD2, m1="m8", m2="m9")
+for s in range(N_SPRING):
+    net.add_spring(name=f"s{s}", k=K, length=L, m1=f"m{s}", m2=f"m{s+1}")
 
 # smorzatori
-net.add_damper(name="d1", c=0.05, spring="s1")
-net.add_damper(name="d2", c=0.05, spring="s2")
-net.add_damper(name="d3", c=0.05, spring="s3")
-net.add_damper(name="d4", c=0.05, spring="s4")
-net.add_damper(name="d5", c=0.05, spring="s5")
-net.add_damper(name="d6", c=0.05, spring="s6")
-net.add_damper(name="d7", c=0.05, spring="s7")
-net.add_damper(name="d8", c=0.05, spring="s8")
+for d in range(N_DAMPER):
+    net.add_damper(name=f"d{d}", c=C, spring=f"s{d}")
 
-net.dt = 0.5
+# path
+path = []
+for i in range(N_MASS):
+    p = (f"m{i}", "y")
+    path.append(p)
 
-path = [("m1", "y"), ("m2", "y"), ("m3", "y"), ("m4", "y"), ("m5", "y"), ("m6", "y"), ("m7", "y"), ("m8", "y"), ("m9", "y")]
 net.add_path(path=path)
 
-net.add_hammer(hammer_path=path, shape="rand", mode="one_shot")
+hammer_path = net.generate_random_path(path_length=15, coordinate="y")
+net.add_hammer(hammer_path=path, shape="sine", mode="one_shot")
 
-table = net.run(use_hammer=True)
-net.plot_network(table=table, ylim=[0, 10], refresh_time=10)
+masses_motion = net.start_motion(use_hammer=True)
+scan = net.scan_network(masses_motion=masses_motion, scan_mode="network")
+
+net.plot_all_network(table=scan, axes_lim=[-0.75, 0.75]) 

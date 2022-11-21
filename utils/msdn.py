@@ -3,12 +3,13 @@ MSDN (Mass-Spring-Damper Network)
 
 """
 
-from typing import Generator, Union
+from typing import Generator
 from utils.network_components import Mass, Spring, Damper, Hammer
 from utils.scanner import Scanner
-from utils.plot_network import PlotMSDNetwork
 import numpy as np
 import sys
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 
 # TODO: add hammer interaction
@@ -31,6 +32,7 @@ class MSDNetwork():
         self.hammer = None
 
         self.scan = Scanner()
+        self._scan_mode = None
 
         self._dt = 0.1
 
@@ -76,7 +78,19 @@ class MSDNetwork():
             "z": [],
             "xyz": []
         }
-    
+        
+    def lock_unlock_mass(self, name: str, anchored: bool):
+
+        """
+        anchor the mass
+
+        name: str, mass name
+        anchored: bool, if True the mass is anchored
+        """
+
+        self.masses[name].anchored = anchored
+
+
     def add_spring(self, name: str, k: float, length: float, m1: str, m2: str) -> None:
 
         """
@@ -136,7 +150,7 @@ class MSDNetwork():
         add hammer to the network
 
         hammer_path: list[tuple], masses to hit -> [(mass_name, coordinate), ...] 
-        shape: str, hammer type -> ["rand", "sine", "sinc", "sig"]
+        shape: str, hammer type -> ["rand", "sine", "sinc", "sig"]. If sig, mode = "always_on"
         mode: str, hammer mode ["one_shot", "always_on"]
         always_on: bool, if True strikes continuously
         kwargs:
@@ -149,8 +163,9 @@ class MSDNetwork():
 
         try:
             assert mode in ["one_shot", "always_on"]
+            assert shape in ["sine", "sinc", "rand", "sig"] 
         except:
-            print("[ERROR] hammer mode not implemented!\n")
+            print("[ERROR] mode or shape not implemented!\n")
             sys.exit(0)
 
         hammer = Hammer(masses_network=self.masses, hammer_path=hammer_path, shape=shape)
@@ -164,6 +179,7 @@ class MSDNetwork():
         sig_mode_params = sig_mode_params | kwargs
 
         if hammer.shape == "sig":
+            self._hammer_mode = "always_on"
             path = sig_mode_params["path"]
             sr = sig_mode_params["sr"]
             skip = sig_mode_params["skip"]
@@ -187,7 +203,7 @@ class MSDNetwork():
         """
         generate random path
 
-        path_lenght: int, length of the path
+        path_lenght: int, length of the path (< mass number) 
         coordinate: str, [x, y, z, xyz]
 
         return: list[tuple]
@@ -197,15 +213,20 @@ class MSDNetwork():
 
         try:
             assert coordinate in coord
+            assert path_length <= len(self.masses)
         except:
-            print("[ERROR] coordinate must be [x, y, z, xyz]!\n")
+            print("[ERROR] path_lenght must be less than number of masses; coordinate must be x, y, z or xyz or !\n")
             sys.exit(0)
-        
+
+        path_coord = list(self.masses.keys())
         path = []
-        for i in range(path_length):
-            m = np.random.choice(list(self.masses.keys()))
+        i = 0
+        while i < path_length:
+            m = np.random.choice(path_coord)
             c = np.random.choice(coord[:-1]) if coordinate == "xyz" else coordinate
             path.append((m, c))
+            path_coord.pop(path_coord.index(m))
+            i += 1
         return path
     
     def __reset_network(self) -> None:
@@ -221,17 +242,14 @@ class MSDNetwork():
             for coord in self.masses_motion[mass]:
                 self.masses_motion[mass][coord] = []
     
-    def run(self, maprange: list = None, use_hammer: bool = False, scanning: bool = True, plot_mode: bool = False) -> Union[Generator, dict]:
+    def start_motion(self, maprange: list = None, use_hammer: bool = False) -> Generator:
 
         """
         set the network in motion
 
-        maprange: list or None, if not None rescale in range [min, max]
         use_hammer: bool, if True use the hammer
-        scanning: bool, if True generate wavetable, False generate motion data
-        plot_mode: bool, if True plot the animation
 
-        return: Union[Iterator, dict]
+        return: Dict Generator with network motion dict (generator[mass_name][coordinate])
         """
 
         self.__reset_network()
@@ -256,41 +274,91 @@ class MSDNetwork():
                 self.__generate_external_force()
             
             for mass in self.masses:
-                motion[mass]["x"] = self.masses[mass].pos[0]
-                motion[mass]["y"] = self.masses[mass].pos[1]
-                motion[mass]["z"] = self.masses[mass].pos[2]
+                motion[mass]["x"] = self.masses[mass].pos[0] 
+                motion[mass]["y"] = self.masses[mass].pos[1] 
+                motion[mass]["z"] = self.masses[mass].pos[2] 
                 
                 self.masses[mass].update_position(dt=self._dt)
             
-            if scanning:
-                ft = self.scan.rtscan(masses_motion=motion, maprange=maprange)
-                y = ft
-            else:
-                y = motion
-            
+            yield motion
+        
+    def scan_network(self, masses_motion: Generator, scan_mode: str = "path") -> Generator:
+
+        """
+        scan path in a network
+
+        masses_motion: Generator, masses motion Generator from start_motion method
+        scan_mode: str, must be [path, network]. If path, scan only network path; if network scan all network -> return 2D vector
+
+        return: Generator of 1D or 2D network motion vector
+        """
+
+        try:
+            assert scan_mode in ["path", "network"]
+        except:
+            print("[ERROR] scan must be path or network!\n")
+            sys.exit(0)
+        
+        self._scan_mode = scan_mode
+        
+        while True:
+            motion = next(masses_motion)
+            y = self.scan.rtscan(masses_motion=motion, scan_mode=scan_mode)
             yield y
-    
-    def plot_network(self, table: Generator, ylim: tuple, refresh_time: float) -> None:
+
+    def plot_all_network(self, table: Generator,  axes_lim: tuple, refresh_time: int = 10) -> None:
 
         """
         plot network animation
 
         table: Generator, function table generator
-        ylim: tuple, limit on y axis
-        refresh_time: float, refresh time
+        axes_lim: tuple, axes limit
+        refresh_time: int, refresh time
         """
 
-        n = len(self.scan.path)
+        fig, ax = plt.subplots(figsize=(15, 10))
+        ax = plt.axes(projection="3d")
 
-        p = PlotMSDNetwork()
-        p.rtplot(table=table, table_length=n, ylim=ylim, refresh_time=refresh_time)
-
-            
-
+        def update(i):
+            t = next(table)
+            x, y, z = t[0], t[1], t[2]
+            ax.clear()
+            ax.set_title(f"NETWORK IN MOTION [N = {len(x)} MASSES]", weight="bold")
+            ax.set_ylim(axes_lim)
+            ax.set_zlim(axes_lim)
+            ax.plot(x, y, z,"-o", c="k", lw=0.5)
+            ax.set_xlabel("X")
+            ax.set_ylabel("Y")
+            ax.set_zlabel("Z")
+        
+        animation = FuncAnimation(fig, update, interval=refresh_time)
+        plt.show()
     
+    def plot_network_path(self, table: Generator,  axes_lim: tuple, refresh_time: int = 10) -> None:
 
+        """
+        plot network animation
 
+        table: Generator, function table generator
+        axes_lim: tuple, axes limit
+        refresh_time: int, refresh time
+        """
 
+        fig, ax = plt.subplots(figsize=(15, 10))
+
+        def update(i):
+            t = next(table)
+            y = t
+            x = [i for i in range(len(y))] 
+            ax.clear()
+            ax.set_title(f"PATH IN MOTION [N = {len(x)} MASSES]", weight="bold")
+            ax.set_ylim(axes_lim)
+            ax.plot(x, y,"-o", c="k", lw=0.5)
+            ax.set_xlabel("X")
+            ax.set_ylabel("Y")
+
+        animation = FuncAnimation(fig, update, interval=refresh_time)
+        plt.show()
 
 
 
