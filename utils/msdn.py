@@ -257,12 +257,13 @@ class MSDNet():
             for coord in self.masses_motion[mass]:
                 self.masses_motion[mass][coord] = []
     
-    def activate_network(self, maprange: list = None, use_hammer: bool = False) -> Generator:
+    def activate_network(self, use_hammer: bool = False, clip_pos: tuple|None = None) -> Generator:
 
         """
         set the network in motion
 
         use_hammer: bool, if True use the hammer
+        clip_pos: tuple or None, clip position in a range (min, max)
 
         return: Dict Generator (network motion -> dict[mass_name][coordinate])
         """
@@ -301,6 +302,12 @@ class MSDNet():
                 motion[mass]["z"] = self.masses[mass].pos[2] 
                 
                 self.masses[mass].update_position(dt=self._dt)
+                
+                if clip_pos is not None:
+                    min_clip, max_clip = clip_pos[0], clip_pos[1]
+                    for i, p in enumerate(self.masses[mass].pos):
+                        if p < min_clip: self.masses[mass].pos[i] = min_clip
+                        if p > max_clip: self.masses[mass].pos[i] = max_clip
             
         
     def scan_network(self, masses_motion: Generator) -> Generator:
