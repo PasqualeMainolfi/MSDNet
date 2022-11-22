@@ -96,7 +96,7 @@ net.add_hammer(shape="sine", mode="one_shot")
 7. Active and scan network
 ```python
 # activate
-masses_motion = net.activate_network(use_hammer=True)
+masses_motion = net.activate_network(use_hammer=True, clip_pos=(-1, 1))
 # scan, return a array generator -> [net_motion: 2D vector of all network motion. ROW = number of masses, COL = 3 (x, y, z), path_motion: 1D vector path network motion]
 net_scan = net.scan_network(masses_motion=masses_motion)
 ```
