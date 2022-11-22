@@ -3,22 +3,6 @@ Scan the path from MSDNetwork
 """
 
 import numpy as np
-import sys
-
-# def inter(x, n):
-#     k = n - 1
-#     j = (len(x) * n) - k
-#     y = np.zeros(j)
-#     h = 0
-#     for i in range(1, len(x)):
-#         step = (x[i] - x[i - 1])/n
-#         for m in range(n):
-#             y[m + h] = x[i - 1] + (step * m)
-#             y[h] = x[i - 1]
-#         h += n
-#     y[-1] = x[-1]
-#     return y
-
 
 class Scanner():
     def __init__(self, path: list[tuple]) -> None:
@@ -61,6 +45,7 @@ class Scanner():
                 path_motion[n] = current_position
         
         return net_motion, path_motion
+
 
 
 
