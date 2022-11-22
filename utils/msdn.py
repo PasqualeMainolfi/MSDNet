@@ -4,8 +4,8 @@ MSDN (Mass-Spring-Damper Network)
 """
 
 from typing import Generator
-from network_components import Mass, Spring, Damper, Hammer
-from scanner import Scanner
+from utils.network_components import Mass, Spring, Damper, Hammer
+from utils.scanner import Scanner
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
@@ -269,12 +269,19 @@ class MSDNet():
 
         self.__reset_network()
 
+        # set initial position before force
         motion = {}
         for m in self.masses:
-            motion[m] = {"x": None, "y": None, "z": None}
+            motion[m] = {
+                "x": self.masses[m].pos[0], 
+                "y": self.masses[m].pos[1], 
+                "z": self.masses[m].pos[2]
+            }
 
         while True:
             
+            yield motion
+
             for spring in self.springs:
                 self.springs[spring].generate_spring_force()
 
@@ -295,7 +302,6 @@ class MSDNet():
                 
                 self.masses[mass].update_position(dt=self._dt)
             
-            yield motion
         
     def scan_network(self, masses_motion: Generator) -> Generator:
 
