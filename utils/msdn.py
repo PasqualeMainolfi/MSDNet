@@ -302,29 +302,62 @@ class MSDNet():
                 motion[mass]["z"] = self.masses[mass].pos[2] 
                 
                 self.masses[mass].update_position(dt=self._dt)
-                
+
                 if clip_pos is not None:
                     min_clip, max_clip = clip_pos[0], clip_pos[1]
                     for i, p in enumerate(self.masses[mass].pos):
                         if p < min_clip: self.masses[mass].pos[i] = min_clip
                         if p > max_clip: self.masses[mass].pos[i] = max_clip
+
             
         
-    def scan_network(self, masses_motion: Generator) -> Generator:
+    def scan_network(self, masses_motion: Generator, smooth: bool = False, **kwargs) -> Generator:
 
         """
         scan path in a network
 
         masses_motion: Generator, generate this input from scan_network method
+        smooth: bool, if True smooth motion
+        kwargs: wlen, if smooth == True, set filter window length (moving average). This param must be less than number of masses
 
         return: Array Generator -> [net_motion: 2D vector of all network motion. ROW = number of masses, COL = 3 (x, y, z), path_motion: 1D vector path network motion]
         """
         
         scan = Scanner(path=self.path)
+
+        kernel_len = {"wlen": 1}
+        kernel_len = kernel_len|kwargs
+
+        if smooth:
+            try:
+               assert kernel_len["wlen"] < len(self.masses)
+            except:
+                print("[ERROR] wlen must be less than a number of masses!\n")
+                sys.exit(0)
         
         while True:
             motion = next(masses_motion)
-            net_scan, path_scan = scan.rtscan(masses_motion=motion)
+            net_scan, path_scan = scan.rtscan(masses_motion=motion, smooth=smooth, wlen=kernel_len["wlen"])
+
+            if smooth:
+                for m, mass in enumerate(self.masses):
+                    if self.masses[mass].anchored:
+                        for i in range(3):
+                            net_scan[i, m] = self.masses[mass].start_pos[i]
+                
+                if path_scan is not None:
+
+                    index = {
+                        "x": 0,
+                        "y": 1,
+                        "z": 2
+                    }
+                    
+                    for i, element in enumerate(self.path):
+                        mass, coord = element[0], element[1]
+                        if self.masses[mass].anchored:
+                            path_scan[i] = self.masses[mass].start_pos[index[coord]]
+
             yield (net_scan, path_scan)
 
     def show_network_in_motion(self, table: Generator,  axes_lim: tuple, refresh_time: int = 10) -> None:
@@ -377,47 +410,12 @@ class MSDNet():
             ax.clear()
             ax.set_title(f"PATH IN MOTION [N = {len(x)} MASSES]", weight="bold")
             ax.set_ylim(axes_lim)
-            ax.plot(x, y, "-", c="k", lw=0.3, marker="o", linestyle="dashed", markerfacecolor="r")
+            ax.plot(x, y, c="k", lw=0.3, marker="o", linestyle="dashed", markerfacecolor="r")
             ax.set_xlabel("X")
             ax.set_ylabel("Y")
 
         ani = animation.FuncAnimation(fig, update, interval=refresh_time)
         plt.show()
-    
-    # def show_network(self, table, axes_lim, refresh_time: int = 10):
-
-    #     # fig, ax = plt.subplots(figsize=(15, 10))
-    #     # ax[0].axes(projection="3d")
-    #     fig = plt.figure(figsize=(15, 10))
-
-    #     def update(i):
-    #         t = next(table)
-    #         xnet, ynet, znet = t[0][0], t[0][1], t[0][2]
-    #         ypath = t[1]
-    #         xpath = [j for j in range(len(self.path))]
-
-    #         ax = fig.add_subplot(2, 1, 1, projection="3d")
-
-    #         ax.clear()
-    #         ax.set_title(f"NETWORK IN MOTION [N = {len(xnet)} MASSES]", weight="bold")
-    #         ax.set_ylim(axes_lim)
-    #         ax.set_zlim(axes_lim)
-    #         ax.set_xlabel("X")
-    #         ax.set_ylabel("Y")
-    #         ax.set_zlabel("Z")
-    #         ax.plot(xnet, ynet, znet,"-o", c="k", lw=0.5)
-
-    #         ax = fig.add_subplot(2, 1, 2)
-
-    #         ax.clear()
-    #         ax.set_title(f"PATH IN MOTION [N = {len(xpath)} MASSES]", weight="bold")
-    #         ax.set_ylim(axes_lim)
-    #         ax.set_xlabel("X")
-    #         ax.set_ylabel("Y")
-    #         ax.plot(xpath, ypath,"-o", c="k", lw=0.5)
         
-    #     animation = FuncAnimation(fig, update, interval=refresh_time)
-    #     plt.show()
-
-
-
+        
+        
