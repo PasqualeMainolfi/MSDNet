@@ -98,7 +98,8 @@ net.add_hammer(shape="sine", mode="one_shot")
 # activate
 masses_motion = net.activate_network(use_hammer=True, clip_pos=(-1, 1))
 # scan, return a array generator -> [net_motion: 2D vector of all network motion. ROW = number of masses, COL = 3 (x, y, z), path_motion: 1D vector path network motion]
-net_scan = net.scan_network(masses_motion=masses_motion)
+# if smooth is True, smooth signal (see code)
+net_scan = net.scan_network(masses_motion=masses_motion, smooth=False)
 ```
 8. You can watch the network in motion
 ```python
