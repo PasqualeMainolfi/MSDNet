@@ -127,28 +127,27 @@ class Damper():
 
 class Hammer():
 
-    def __init__(self, masses_network: dict, hammer_path: list[tuple], shape: str) -> None:
+    def __init__(self, masses_network) -> None:
 
 
         """
         Create hammer
 
         mass_network: dict, network of connected masses and springs to be struck
-        hit_mass: list[tuple] -> [(mass name, coordinate), ...], masses to be struck (hammer path)
-        mode: str, type of hammer ["rand", "sine", "sinc", "sig"]
+        hammer_path: list[tuple] -> [(mass name, coordinate), ...], masses to be struck (hammer path)
+        shape: str, type of hammer ["rand", "sine", "sinc", "sig"]
         """
 
 
         self.masses = masses_network
-        self.shape = shape
-        self.hammer_path = hammer_path
-        self.__force_vector = np.zeros((len(self.hammer_path), 3))
-        self.__audio_vector_index = 0
-        self.__hammer_audio_signal = None
-        self.__len_sig = 0
-        self.__sig_sr = None
+        self.shape = None
+        self.hammer_path = None
 
         self.one_shot = False
+        self.mode = None
+        self.hammer_rand_path = False
+        self.hammer_rand_path_coordinate = "xyz"
+        self.shot_prob = 0.01
 
     @property
     def hammer_audio_signal(self):
@@ -181,7 +180,7 @@ class Hammer():
         self.__audio_vector_index = skip
 
     # generate hammer
-    def _generate_displacement(self) -> None:
+    def generate_shot(self) -> None:
 
         coord = {
             "x": 0,
@@ -189,8 +188,15 @@ class Hammer():
             "z": 2
         }
 
-        q = len(self.hammer_path)
+        try:
+            assert self.hammer_path is not None
+        except:
+            print("[ERROR] hammer path not found!\n")
+            exit(0)
         
+        q = len(self.hammer_path)
+        self.__force_vector = np.zeros((q, 3))
+
         for n, m in enumerate(self.hammer_path):
 
             ndx = m[1]
@@ -213,8 +219,12 @@ class Hammer():
                 # print(self.__count + self.skip_time)
                 self.skip_time += 1
 
+        if self.shape != "sig":
+            fac = np.random.choice([1, -1])
+            self.__force_vector *= fac
+
     # generate hammer force
     def generate_hammer_force(self) -> None:
-        self._generate_displacement()
+        self.generate_shot()
         for n, m in enumerate(self.hammer_path):
             self.masses[m[0]].apply_force(self.__force_vector[n])
