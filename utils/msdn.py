@@ -7,12 +7,9 @@ from typing import Generator
 from utils.network_components import Mass, Spring, Damper, Hammer
 from utils.scanner import Scanner
 import numpy as np
-import sys
 import matplotlib.pyplot as plt
-from matplotlib import animation
+from matplotlib.animation import FuncAnimation
 
-
-# TODO: add function that return path or network scan from network scan
 
 class MSDNet():
     def __init__(self) -> None:
@@ -27,20 +24,14 @@ class MSDNet():
 
         self.external_forces = dict()
 
-        self.hammer = None
-        self.hammer_path = None
-        self.__hammer_mode = None
-
-        self.path = None
-
-        self._dt = 0.1
+        self.hammer = Hammer(masses_network=self.masses)
 
     @property
     def dt(self):
         return self._dt
     
     @dt.setter
-    def dt(self, dtime: float):
+    def dt(self, dtime: float = 0.1):
 
         """
         set sampling time
@@ -143,55 +134,61 @@ class MSDNet():
                 self.masses[mass].apply_force(f)
 
     
-    def add_hammer(self, shape: str, mode: str = "one_shot", **kwargs) -> None:
+    def add_hammer(self, shape: str = "rand", mode: str = "one_shot", **kwargs) -> None:
 
         """
         add hammer to the network
 
         hammer_path: list[tuple], masses to hit -> [(mass_name, coordinate), ...] 
-        shape: str, hammer type -> ["rand", "sine", "sinc", "sig"]. If sig, mode = "always_on"
-        mode: str, hammer mode ["one_shot", "always_on"]
-        always_on: bool, if True strikes continuously
+        shape: str, the shaope of the hammer head -> ["rand", "sine", "sinc", "sig"]. If sig, mode = "always_on"
+        mode: str, types of hammer shots ["one_shot", "always_on", "rand_shot"]
         kwargs:
-            path: str, signal path -> sig shape
+            path_to_sig: str, signal directory path -> sig shape
             sr: int, signal sample rate -> sig shape
             skip: float, skip time loaded audio signal, in sec. -> sig shape
+            rand_path: bool, if True it change the hammer path randomly at each iteration, if False the path is always the same
+            rand_path_coordinate: str, if True it change the hammer path coordinates randomly at each iteration, if False the coordinate is "xyz"
+            shot_prob: float, 0.0 - 1.0 the hammer shot probability at each iteration in mode rand_shot
         """
         
-        self.__hammer_mode = mode
-
         try:
-            assert mode in ["one_shot", "always_on"]
+            assert mode in ["one_shot", "always_on", "rand_shot"]
             assert shape in ["sine", "sinc", "rand", "sig"] 
         except:
             print("[ERROR] mode or shape not yet implemented!\n")
-            sys.exit(0)
+            exit(0)
         
         try:
-            assert self.hammer_path is not None
+            assert self.hammer.hammer_path is not None
         except:
             print("[ERROR] hammer path not found!\n")
-            sys.exit(0)
+            exit(0)
 
-        hammer = Hammer(masses_network=self.masses, hammer_path=self.hammer_path, shape=shape)
+        self.hammer.mode = mode
+        self.hammer.shape = shape
 
-        sig_mode_params = {
+        params = {
             "path_to_sig": "", 
             "sr": 44100, 
-            "skip": 0
+            "skip": 0,
+            "rand_path": False,
+            "rand_path_coordinate": "xyz",
+            "shot_prob": 0.01
         }
         
-        sig_mode_params = sig_mode_params | kwargs
+        params = params | kwargs
 
-        if hammer.shape == "sig":
+        if shape == "sig":
             self.__hammer_mode = "always_on"
-            path_to_sig = sig_mode_params["path_to_sig"]
-            sr = sig_mode_params["sr"]
-            skip = sig_mode_params["skip"]
-            hammer.hammer_audio_signal = (path_to_sig, sr)
-            hammer.skip_time = int(skip * sr)
+            path_to_sig = params["path_to_sig"]
+            sr = params["sr"]
+            skip = params["skip"]
+            self.hammer.hammer_audio_signal = (path_to_sig, sr)
+            self.hammer.skip_time = int(skip * sr)
 
-        self.hammer = hammer
+        self.hammer.hammer_rand_path = params["rand_path"]
+        self.hammer.hammer_rand_path_coordinate = params["rand_path_coordinate"]
+        self.hammer.shot_prob = params["shot_prob"]
     
     def add_hammer_path(self, path: list[tuple]) -> None:
 
@@ -201,7 +198,7 @@ class MSDNet():
         path: list[tuple], masses hammer path
         """
 
-        self.hammer_path = path
+        self.hammer.hammer_path = path
 
     def add_path(self, path: list[tuple]) -> None:
 
@@ -231,7 +228,7 @@ class MSDNet():
             assert path_length <= len(self.masses)
         except:
             print("[ERROR] path_lenght must be less than number of masses; coordinate must be x, y, z or xyz or !\n")
-            sys.exit(0)
+            exit(0)
 
         path_coord = list(self.masses.keys())
         path = []
@@ -279,6 +276,8 @@ class MSDNet():
                 "z": self.masses[m].pos[2]
             }
 
+        shot = True
+
         while True:
             
             yield motion
@@ -290,8 +289,17 @@ class MSDNet():
                 self.dampers[damper].generate_drag_force()
             
             if use_hammer:
-                self.hammer.generate_hammer_force()
-                use_hammer = False if self.__hammer_mode == "one_shot" else True
+                if shot:
+                    self.hammer.generate_hammer_force()
+                    if self.hammer.mode in ["one_shot", "rand_shot"]:
+                        shot = False
+                if self.hammer.mode == "rand_shot":
+                    shot = bool(np.random.binomial(1, p=self.hammer.shot_prob))
+                    if shot and self.hammer.hammer_rand_path:
+                        self.hammer.hammer_path = self.generate_random_path(
+                            path_length=np.random.randint(low=1, high=len(self.masses) + 1),
+                            coordinate=self.hammer.hammer_rand_path_coordinate
+                        )
             
             if self.external_forces:
                 self.__generate_external_force()
@@ -333,7 +341,7 @@ class MSDNet():
                assert kernel_len["wlen"] < len(self.masses)
             except:
                 print("[ERROR] wlen must be less than a number of masses!\n")
-                sys.exit(0)
+                exit(0)
         
         while True:
             motion = next(masses_motion)
@@ -385,10 +393,7 @@ class MSDNet():
             ax.set_ylabel("Y")
             ax.set_zlabel("Z")
         
-        ani = animation.FuncAnimation(fig, update, interval=refresh_time)
-        # write = animation.FFMpegWriter(fps=60)
-        # ani.save("network.mp4", writer=write)
-        # plt.close()
+        animation = FuncAnimation(fig, update, interval=refresh_time)
         plt.show()
     
     def show_path_in_motion(self, table: Generator,  axes_lim: tuple, refresh_time: int = 10) -> None:
@@ -414,8 +419,8 @@ class MSDNet():
             ax.set_xlabel("X")
             ax.set_ylabel("Y")
 
-        ani = animation.FuncAnimation(fig, update, interval=refresh_time)
+        animation = FuncAnimation(fig, update, interval=refresh_time)
         plt.show()
-        
-        
-        
+
+
+
