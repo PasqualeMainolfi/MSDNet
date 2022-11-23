@@ -3,7 +3,7 @@ from utils.msdn import MSDNet
 
 net = MSDNet()
 
-N_MASS = 30
+N_MASS = 100
 N_SPRING = N_MASS - 1
 N_DAMPER = N_SPRING
 
@@ -15,7 +15,7 @@ L = (l**2 + l**2)**0.5
 M = 8
 D = 0.999
 K = 2.5
-C = 0.3
+C = 0.1
 
 net.dt = DT
 
@@ -29,7 +29,7 @@ net.lock_unlock_mass(name="m0", anchored=True)
 net.lock_unlock_mass(name=f"m{N_MASS - 1}", anchored=True)
 
 # add gravity
-net.add_external_force(name="gravity", direction=[0, -9.8, 0])
+# net.add_external_force(name="gravity", direction=[0, -9.8, 0])
 
 # springs
 for s in range(N_SPRING):
@@ -49,10 +49,10 @@ net.add_path(path=path)
 
 hammer_path = net.generate_random_path(path_length=7, coordinate="y")
 net.add_hammer_path(path=path)
-net.add_hammer(shape="sine", mode="one_shot")
+net.add_hammer(shape="rand", mode="one_shot")
 
 masses_motion = net.activate_network(use_hammer=True, clip_pos=(-1, 1))
-net_scan = net.scan_network(masses_motion=masses_motion)
+net_scan = net.scan_network(masses_motion=masses_motion, smooth=True, wlen=10)
 
-net.show_network_in_motion(table=net_scan, axes_lim=[-1, 1]) 
-# net.show_path_in_motion(table=net_scan, axes_lim=[-1, 1]) 
+net.show_network_in_motion(table=net_scan, axes_lim=[-1, 1]) # show 3D net motion
+# net.show_path_in_motion(table=net_scan, axes_lim=[-1, 1]) # show path motion
