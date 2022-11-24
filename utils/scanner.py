@@ -1,5 +1,5 @@
 """
-Scan the path from MSDNetwork
+Scan the path from MSDNetwork 
 """
 
 import numpy as np
