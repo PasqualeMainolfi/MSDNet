@@ -4,8 +4,8 @@ MSDN (Mass-Spring-Damper Network)
 """
 
 from typing import Generator
-from utils.network_components import Mass, Spring, Damper, Hammer
-from utils.scanner import Scanner
+from msdnet.network_components import Mass, Spring, Damper, Hammer
+from msdnet.scanner import Scanner
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
