@@ -1,4 +1,4 @@
-from utils.msdn import MSDNet
+from msdnet import MSDNet
 
 
 net = MSDNet()
