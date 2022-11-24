@@ -1,5 +1,5 @@
 """
-MSDNetwork components: mass, spring, damper and hammer
+MSDNetwork components: mass, spring, damper and hammer 
 
 """
 
