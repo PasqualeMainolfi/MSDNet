@@ -4,7 +4,7 @@ MSDNet is a tool for building complex mass-spring-damper networks in python.
 
 1. Import and create network obj
 ```python
-from utils.msdn import MSDNet
+from msdnet import MSDNet
 
 net = MSDNet()
 ```
