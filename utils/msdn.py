@@ -27,13 +27,15 @@ class MSDNet():
         self.hammer = Hammer(masses_network=self.masses)
         
         self.path = None
+        
+        self.__dt = 0.1
 
     @property
     def dt(self):
-        return self._dt
+        return self.__dt
     
     @dt.setter
-    def dt(self, dtime: float = 0.1):
+    def dt(self, dtime: float):
 
         """
         set sampling time
@@ -41,7 +43,7 @@ class MSDNet():
         dtime: int, sample time (in sec)
         """
         
-        self._dt = dtime
+        self.__dt = dtime
     
     def add_mass(self, name: str, m: float, pos: list[float], d: float, anchored: bool = False) -> None:
 
@@ -311,7 +313,7 @@ class MSDNet():
                 motion[mass]["y"] = self.masses[mass].pos[1] 
                 motion[mass]["z"] = self.masses[mass].pos[2] 
                 
-                self.masses[mass].update_position(dt=self._dt)
+                self.masses[mass].update_position(dt=self.__dt)
 
                 if clip_pos is not None:
                     min_clip, max_clip = clip_pos[0], clip_pos[1]
@@ -395,7 +397,7 @@ class MSDNet():
             ax.set_ylabel("Y")
             ax.set_zlabel("Z")
         
-        animation = FuncAnimation(fig, update, interval=refresh_time)
+        animation = FuncAnimation(fig, update, interval=refresh_time, repeat=False)
         plt.show()
     
     def show_path_in_motion(self, table: Generator,  axes_lim: tuple, refresh_time: int = 10) -> None:
@@ -421,7 +423,7 @@ class MSDNet():
             ax.set_xlabel("X")
             ax.set_ylabel("Y")
 
-        animation = FuncAnimation(fig, update, interval=refresh_time)
+        animation = FuncAnimation(fig, update, interval=refresh_time, repeat=False)
         plt.show()
 
 
