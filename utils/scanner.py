@@ -10,7 +10,7 @@ def smooth_data(x: list[float], wlen: int) -> list[float]:
     return y
 
 class Scanner():
-    def __init__(self, path: list[tuple]) -> None:
+    def __init__(self, path: list[tuple]|None) -> None:
         self.path = path
     
     def rtscan(self, masses_motion, smooth: bool, wlen: int):
