@@ -25,6 +25,8 @@ class MSDNet():
         self.external_forces = dict()
 
         self.hammer = Hammer(masses_network=self.masses)
+        
+        self.path = None
 
     @property
     def dt(self):
