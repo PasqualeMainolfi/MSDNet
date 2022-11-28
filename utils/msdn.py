@@ -25,9 +25,9 @@ class MSDNet():
         self.external_forces = dict()
 
         self.hammer = Hammer(masses_network=self.masses)
-        
+
         self.path = None
-        
+
         self.__dt = 0.1
 
     @property
@@ -119,23 +119,48 @@ class MSDNet():
         self.dampers[name] = damper
         self.spring_params[spring].update({"damper": name, "c": c})
 
-    def add_external_force(self, name: str, direction: list[float]) -> None:
+    def add_external_force(self, name: str, direction: list[float], masses: str|list[str] = "all", mode: str = "always_on") -> None:
 
         """
         add external force to the network
 
         name: str, force name
         direction: list[float] -> [x, y, z]
+        masses: str|list[str], "all" or list of masses. If "all", force is applied on all masses. It is possible, or, to pass the list of masses to which to apply the force
+        mode: str, types of hammer shots ["one_shot", "always_on", "rand_shot"]
         """
         
-        self.external_forces[name] = direction
+        params = {
+            "force": np.array(direction, dtype=float),
+            "start_force": np.array(direction, dtype=float),
+            "where": masses,
+            "mode": mode
+        }
+
+        self.external_forces[name] = params
     
     def __generate_external_force(self):
+
         for force in self.external_forces:
-            f = np.array(self.external_forces[force], dtype=float)
-            for mass in self.masses:
-                f /= self.masses[mass].m
-                self.masses[mass].apply_force(f)
+
+            f = self.external_forces[force]["force"]
+            w = self.external_forces[force]["where"]
+            mode = self.external_forces[force]["mode"]
+
+            if w == "all":
+                for mass in self.masses:
+                    ff = f/self.masses[mass].m
+                    self.masses[mass].apply_force(ff)
+            if isinstance(w, list):
+                for mass in w:
+                    ff = f/self.masses[mass].m
+                    self.masses[mass].apply_force(ff)
+            if mode in ["one_shot", "rand_shot"]:
+                self.external_forces[force]["force"] *= 0
+            if mode == "rand_shot":
+                v, p = np.random.rand(), np.random.rand() * 0.01
+                if v < p: 
+                    self.external_forces[force]["force"] = -self.external_forces[force]["start_force"]
 
     
     def add_hammer(self, shape: str = "rand", mode: str = "one_shot", **kwargs) -> None:
@@ -269,7 +294,7 @@ class MSDNet():
         return: Dict Generator (network motion -> dict[mass_name][coordinate])
         """
 
-        self.__reset_network()
+        # self.__reset_network()
 
         # set initial position before force
         motion = {}
