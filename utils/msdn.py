@@ -127,7 +127,10 @@ class MSDNet():
         name: str, force name
         direction: list[float] -> [x, y, z]
         masses: str|list[str], "all" or list of masses. If "all", force is applied on all masses. It is possible, or, to pass the list of masses to which to apply the force
-        mode: str, types of hammer shots ["one_shot", "always_on", "rand_shot"]
+        mode: str, types of hammer shots ["one_shot", "always_on", "rand_shot"]:
+            one_shot -> apply force only once (first iteration)
+            always_on -> apply force at each iteration
+            rand_shot -> apply force probabilistically
         """
         
         params = {
@@ -170,7 +173,10 @@ class MSDNet():
 
         hammer_path: list[tuple], masses to hit -> [(mass_name, coordinate), ...] 
         shape: str, the shaope of the hammer head -> ["rand", "sine", "sinc", "sig"]. If sig, mode = "always_on"
-        mode: str, types of hammer shots ["one_shot", "always_on", "rand_shot"]
+        mode: str, types of hammer shots ["one_shot", "always_on", "rand_shot"]:
+            one_shot -> apply force only once (first iteration)
+            always_on -> apply force at each iteration
+            rand_shot -> apply force probabilistically (see kwargs -> shot_prob)
         kwargs:
             path_to_sig: str, signal directory path -> sig shape
             sr: int, signal sample rate -> sig shape
