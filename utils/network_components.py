@@ -1,5 +1,5 @@
 """
-MSDNetwork components: mass, spring, damper and hammer 
+MSDNetwork components: mass, spring, damper and hammer
 
 """
 
@@ -86,11 +86,11 @@ class Spring():
         force = np.subtract(self.m2.pos, self.m1.pos)
         mag = magnitude(v=force)
         x = mag - self.length
-        force = force/mag
-        force = force * self.k * x
-        self.m1.apply_force(force)
-        force *= -1
-        self.m2.apply_force(force)
+        force_n = force/mag
+        f = force_n * self.k * x
+        self.m1.apply_force(f)
+        f *= -1
+        self.m2.apply_force(f)
 
 
 class Damper():
@@ -118,11 +118,11 @@ class Damper():
         
         drag = np.subtract(self.m2.vel, self.m1.vel)
         mag = magnitude(v=drag)
-        drag = drag/mag
-        drag = drag * self.c * np.power(mag, 2)
-        self.m1.apply_force(drag)
-        drag *= -1
-        self.m2.apply_force(drag)
+        drag_n = drag/mag
+        d = drag_n * self.c * np.power(mag, 2)
+        self.m1.apply_force(d)
+        d *= -1
+        self.m2.apply_force(d)
 
 
 class Hammer():
