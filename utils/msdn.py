@@ -162,8 +162,9 @@ class MSDNet():
                 self.external_forces[force]["force"] *= 0
             if mode == "rand_shot":
                 v, p = np.random.rand(), np.random.rand() * 0.01
-                if v < p: 
-                    self.external_forces[force]["force"] = -self.external_forces[force]["start_force"]
+                if v < p:
+                    direc = np.random.choice([-1, 1])
+                    self.external_forces[force]["force"] = direc * self.external_forces[force]["start_force"]
 
     
     def add_hammer(self, shape: str = "rand", mode: str = "one_shot", **kwargs) -> None:
