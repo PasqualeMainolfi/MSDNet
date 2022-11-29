@@ -101,7 +101,7 @@ class MSDNet():
         self.springs[name] = spring
         self.spring_params[name] = {
             "stiffness": k,
-            "lenght": length,
+            "length": length,
             "link": f"{self.masses[m1].name} < -- > {self.masses[m2].name}"
         }
     
@@ -250,7 +250,7 @@ class MSDNet():
         """
         generate random path
 
-        path_lenght: int, length of the path (< mass number) 
+        path_length: int, length of the path (< mass number) 
         coordinate: str, [x, y, z, xyz]
 
         return: list[tuple]
@@ -262,7 +262,7 @@ class MSDNet():
             assert coordinate in coord
             assert path_length <= len(self.masses)
         except:
-            print("[ERROR] path_lenght must be less than number of masses; coordinate must be x, y, z or xyz or !\n")
+            print("[ERROR] path_length must be less than number of masses; coordinate must be x, y, z or xyz or !\n")
             exit(0)
 
         path_coord = list(self.masses.keys())
@@ -434,7 +434,7 @@ class MSDNet():
     def show_path_in_motion(self, table: Generator,  axes_lim: tuple, refresh_time: int = 10) -> None:
 
         """
-        plot network animation
+        plot path animation
 
         table: Generator, function table generator
         axes_lim: tuple, axes limit
