@@ -8,9 +8,9 @@ import numpy as np
 import librosa
 
 def magnitude(v: list) -> float:
-    eps = 1e-12
-    m_ = np.linalg.norm(v)
-    m = m_ if m_ != 0 else eps
+    y = np.asarray(v)
+    m_ = np.sqrt(y.dot(y))
+    m = m_ if m_ != 0 else 1
     return m
 
 class Mass():
