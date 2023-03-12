@@ -27,7 +27,7 @@ D = 0.981
 K = 10
 C = 5
 R = 5
-g = [0, 0.00001, 0]
+g = (0, 0.00001, 0)
 
 net.add_gravity(g=g)
 net.add_dt(DT)
@@ -109,24 +109,7 @@ while run:
             pg.quit()
 
     network = net.run_network(use_hammer=False, acc_is_costant=False, clip_pos=(0, 1), canvas_size=win)
-    net.render(surface=screen, canvas_size=(w, h))
-    
-    # for i, mass in enumerate(network):
-    #     m = network[mass]
-    #     x = m["x"] * w
-    #     y = m["y"] * h
-    #     pos_mass_motion[i] = (x, y)
-        
-        
-
-    # for i in range(N):
-    #     step = N/3
-    #     pg.draw.circle(surface=screen, color=(255, 0, 0), center=pos_mass_motion[i], radius=R)
-    #     if i%step != 0:
-    #         pg.draw.line(surface=screen, color=(255, 255, 255), start_pos=pos_mass_motion[i - 1], end_pos=pos_mass_motion[i])
-    #     if i < N - step:
-    #         pg.draw.line(surface=screen, color=(255, 255, 255), start_pos=pos_mass_motion[i], end_pos=pos_mass_motion[i + int(step)])
-
+    net.render(surface=screen, canvas_size=(w, h), event=event)
 
     clock.tick(fps)
     pg.display.update()

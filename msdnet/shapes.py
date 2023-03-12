@@ -42,7 +42,7 @@ class Cloth(Shape):
         self.xlen = self.size[0]/(self.n_masses + 1)
         self.ylen = self.size[1]/(levels + 1)
 
-    def generate_network(self, m: float, d: float, k: float, c: float, r: float) -> dict[MSDNet]:
+    def generate_cloth(self, m: float, d: float, k: float, c: float, r: float) -> dict[MSDNet]:
 
         """
         generate network
@@ -55,34 +55,34 @@ class Cloth(Shape):
 
         """
 
-        net = MSDNet()
-        net.add_gravity(self.g)
-        net.add_dt(self.dt)
+        cloth = MSDNet()
+        cloth.add_gravity(self.g)
+        cloth.add_dt(self.dt)
 
         # add masses
         dy = self.ylen
         for i in range(self.levels):
             dx = self.xlen
             for j in range(self.n_masses):
-                net.add_mass(name=f"l{i}m{j}", m=m, pos=[dx + self.origin[0], dy + self.origin[1], 0], r=r, d=d, anchored=False)
+                cloth.add_mass(name=f"l{i}m{j}", m=m, pos=[dx + self.origin[0], dy + self.origin[1], 0], r=r, d=d, anchored=False)
                 if i == 0:
-                    net.lock_unlock_mass(name=f"l{i}m{j}", anchored=True)
+                    cloth.lock_unlock_mass(name=f"l{i}m{j}", anchored=True)
                 dx += self.xlen
             dy += self.ylen
         
         # add springs and dampers hor
         for i in range(self.levels):
             for j in range(1, self.n_masses):
-                net.add_spring(name=f"l{i}sh{j}", k=k, length=self.xlen, m1=f"l{i}m{j - 1}", m2=f"l{i}m{j}")
-                net.add_damper(name=f"l{i}d{j}", c=c, spring=f"l{i}sh{j}")
+                cloth.add_spring(name=f"l{i}sh{j}", k=k, length=self.xlen, m1=f"l{i}m{j - 1}", m2=f"l{i}m{j}")
+                cloth.add_damper(name=f"l{i}d{j}", c=c, spring=f"l{i}sh{j}")
         
         # add springs and dampers ver
         for i in range(1, self.levels):
             for j in range(self.n_masses):
-                net.add_spring(name=f"l{i}sv{j}", k=k, length=self.ylen, m1=f"l{i - 1}m{j}", m2=f"l{i}m{j}")
-                net.add_damper(name=f"l{i}d{j}", c=c, spring=f"l{i}sv{j}")
+                cloth.add_spring(name=f"l{i}sv{j}", k=k, length=self.ylen, m1=f"l{i - 1}m{j}", m2=f"l{i}m{j}")
+                cloth.add_damper(name=f"l{i}d{j}", c=c, spring=f"l{i}sv{j}")
 
-        return net
+        return cloth
 
 class String(Shape):
 
@@ -92,11 +92,12 @@ class String(Shape):
         create String object
 
         """
+
         super().__init__(n_masses, origin, scale, g, dt)
 
         self.xlen = self.size[0]/(self.n_masses + 1)
     
-    def generate_netwotk(self, m: float, d: float, k: float, c: float, r: float, anchored_mass: list[int]) -> dict[MSDNet]:
+    def generate_network(self, m: float, d: float, k: float, c: float, r: float, anchored_mass: list[int] = []) -> dict[MSDNet]:
 
         """
         generate network
@@ -110,24 +111,24 @@ class String(Shape):
 
         """
 
-        net = MSDNet()
-        net.add_gravity(self.g)
-        net.add_dt(self.dt)
+        string = MSDNet()
+        string.add_gravity(self.g)
+        string.add_dt(self.dt)
 
         dx = self.xlen
         for i in range(self.n_masses):
-            net.add_mass(name=f"m{i}", m=m, pos=[dx + self.origin[0], self.origin[1], 0], r=r, d=d, anchored=False)
+            string.add_mass(name=f"m{i}", m=m, pos=[dx + self.origin[0], self.origin[1], 0], r=r, d=d, anchored=False)
             dx += self.xlen
         
         if anchored_mass:
             for n in anchored_mass:
-                net.lock_unlock_mass(name=f"m{n - 1}", anchored=True)
+                string.lock_unlock_mass(name=f"m{n - 1}", anchored=True)
         
         for i in range(1, self.n_masses):
-            net.add_spring(name=f"s{i}", k=k, length=self.xlen, m1=f"m{i - 1}", m2=f"m{i}")
-            net.add_damper(name=f"d{i}", c=c, spring=f"s{i}")
+            string.add_spring(name=f"s{i}", k=k, length=self.xlen, m1=f"m{i - 1}", m2=f"m{i}")
+            string.add_damper(name=f"d{i}", c=c, spring=f"s{i}")
 
-        return net
+        return string
 
 
 

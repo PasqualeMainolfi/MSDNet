@@ -12,6 +12,7 @@ from matplotlib.animation import FuncAnimation
 from msdnet.interact import Interact
 import pygame as pg
 
+# TODO: add method remove_mass, remove_spring
 
 class MSDNet():
 
@@ -358,7 +359,7 @@ class MSDNet():
 
             
     
-    def run_network(self, canvas_size: tuple[int, int], use_hammer: bool = False, clip_pos: tuple|None = None, acc_is_costant: bool = False) -> dict["MSDNet"]:
+    def run_network(self, use_hammer: bool = False, clip_pos: tuple|None = None, acc_is_costant: bool = False) -> dict["MSDNet"]:
 
         """
         set network in motion
@@ -368,8 +369,6 @@ class MSDNet():
         """
         
         self.__in_motion(use_hammer=use_hammer, clip_pos=clip_pos, acc_is_costant=acc_is_costant)
-        interact = Interact(network=self.motion, masses=self.masses, canvas_size=canvas_size)
-        interact.interact_with_mass()
         return self.motion
 
         
@@ -476,14 +475,18 @@ class MSDNet():
         animation = FuncAnimation(fig, update, interval=refresh_time, repeat=False)
         plt.show()
     
-    def render(self, surface: pg.Surface, canvas_size: tuple[int, int]) -> None:
+    def render(self, surface: pg.Surface, event: pg.event, canvas_size: tuple[int, int]) -> None:
 
         """
         render and show network with pygame
 
         surface: pg.Surface
+        event: pg.event, main loop events
         canvas_size: tuple[int, int], canvas size
         """
+
+        interact = Interact(network=self.motion, masses=self.masses, canvas_size=canvas_size)
+        interact.interact_with_mass(event=event)
 
 
         w = canvas_size[0]

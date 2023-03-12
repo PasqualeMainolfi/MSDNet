@@ -22,7 +22,7 @@ net.dt = DT
 # masses
 p = 0
 for m in range(N_MASS):
-    net.add_mass(name=f"m{m}", m=M, pos=[p, .5, 0], r=0, d=D, anchored=False, g=0)
+    net.add_mass(name=f"m{m}", m=M, pos=[p, .5, 0], r=0, d=D, anchored=False)
     p += 1/(N_MASS - 1)
 
 net.lock_unlock_mass(name="m0", anchored=True)

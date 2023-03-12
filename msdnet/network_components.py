@@ -55,6 +55,8 @@ class Mass():
         self.vel = np.zeros(3)
         self.acc = np.zeros(3)
 
+        self.is_pressed = False
+
     # apply force
     def apply_force(self, force: list[float]) -> None:
         f = np.array(force, dtype=float)/self.m
