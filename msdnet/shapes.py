@@ -97,7 +97,7 @@ class String(Shape):
 
         self.xlen = self.size[0]/(self.n_masses + 1)
     
-    def generate_network(self, m: float, d: float, k: float, c: float, r: float, anchored_mass: list[int] = []) -> dict[MSDNet]:
+    def generate_string(self, m: float, d: float, k: float, c: float, r: float, anchored_mass: list[int] = []) -> dict[MSDNet]:
 
         """
         generate network
