@@ -102,14 +102,19 @@ pos_mass_motion = [None for _ in range(N)]
 run = True
 while run:
 
-
     for event in pg.event.get():
         if event.type == pg.QUIT:
             run = False
             pg.quit()
 
-    network = net.run_network(use_hammer=False, acc_is_costant=False, clip_pos=(0, 1), canvas_size=win)
-    net.render(surface=screen, canvas_size=(w, h), event=event)
+    network = net.run_network(use_hammer=False, acc_is_costant=False, clip_pos=(0, 1))
+
+    for mass in network:
+        m = network[mass]
+        x = m["x"] * w
+        y = m["y"] * h
+
+        pg.draw.circle(surface=screen, color=(255, 255, 0), center=(x, y), radius=R)
 
     clock.tick(fps)
     pg.display.update()

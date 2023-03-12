@@ -56,6 +56,7 @@ class Mass():
         self.acc = np.zeros(3)
 
         self.is_pressed = False
+        self.is_anchored_press = False
 
     # apply force
     def apply_force(self, force: list[float]) -> None:
@@ -66,7 +67,7 @@ class Mass():
     def update_position(self, dt: float, acc_is_costant: bool = False, clip_pos: tuple|None = None) -> None:
 
                 
-        if not self.anchored:
+        if not self.anchored and not self.is_anchored_press:
             # Verlet
             # x[n + 1] = x[n] + (x[n]-x[n - 1]/dt)dt + a * dt^2 = 2x[n] - x[n - 1] + a * dt**2
             # v[n + 1] = (x[n] - x[n - 1]/dt) * dt = x[n] - x[n - 1]

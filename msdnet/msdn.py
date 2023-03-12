@@ -475,7 +475,7 @@ class MSDNet():
         animation = FuncAnimation(fig, update, interval=refresh_time, repeat=False)
         plt.show()
     
-    def render(self, surface: pg.Surface, event: pg.event, canvas_size: tuple[int, int]) -> None:
+    def render(self, canvas_size: tuple[int, int], clip_pos=tuple[float, float], fps=int) -> None:
 
         """
         render and show network with pygame
@@ -485,32 +485,49 @@ class MSDNet():
         canvas_size: tuple[int, int], canvas size
         """
 
+        pg.init()
+
+        w, h = canvas_size[0], canvas_size[1]
+        win = (w, h)
+        screen = pg.display.set_mode(win)
+        clock = pg.time.Clock()
+        fps = 60
+
         interact = Interact(network=self.motion, masses=self.masses, canvas_size=canvas_size)
-        interact.interact_with_mass(event=event)
 
+        run = True
+        while run:
+            self.run_network(clip_pos=clip_pos)
 
-        w = canvas_size[0]
-        h = canvas_size[1]
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    run = False
+                    pg.quit()
 
-        for mass in self.motion:
-            m = self.motion[mass]
-            x = m["x"] * w
-            y = m["y"] * h
+                interact.interact_with_mass(event=event)
 
-            pg.draw.circle(surface=surface, color=(255, 0, 0), center=(x, y), radius=self.masses[mass].radius)
-        
-        for spring in self.spring_params:
-            m1_name= self.spring_params[spring]["m1"]
-            m2_name = self.spring_params[spring]["m2"]
+            w = canvas_size[0]
+            h = canvas_size[1]
 
-            m1 = self.motion[m1_name]
-            m2 = self.motion[m2_name]
+            for mass in self.motion:
+                m = self.motion[mass]
+                x = m["x"] * w
+                y = m["y"] * h
 
-            x1, y1 = m1["x"] * w, m1["y"] * h
-            x2, y2 = m2["x"] * w, m2["y"] * h
+                pg.draw.circle(surface=screen, color=(255, 0, 0), center=(x, y), radius=self.masses[mass].radius)
+            
+            for spring in self.spring_params:
+                m1_name= self.spring_params[spring]["m1"]
+                m2_name = self.spring_params[spring]["m2"]
 
-            pg.draw.line(surface, color=(255, 255, 255), start_pos=(x1, y1), end_pos=(x2, y2))
+                m1 = self.motion[m1_name]
+                m2 = self.motion[m2_name]
 
-        
+                x1, y1 = m1["x"] * w, m1["y"] * h
+                x2, y2 = m2["x"] * w, m2["y"] * h
 
-
+                pg.draw.line(screen, color=(255, 255, 255), start_pos=(x1, y1), end_pos=(x2, y2))
+            
+            clock.tick(fps)
+            pg.display.update()
+            screen.fill((0, 0, 0))
