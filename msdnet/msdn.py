@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from msdnet.interact import Interact
+import pygame as pg
 
 
 class MSDNet():
@@ -61,6 +62,7 @@ class MSDNet():
         anchored: bool, if True the mass is anchored
         """
 
+
         mass = Mass(name=name, m=m, pos=pos, d=d, radius=r, anchored=anchored, g=self.g)
         self.masses[name] = mass
 
@@ -108,7 +110,9 @@ class MSDNet():
         self.spring_params[name] = {
             "stiffness": k,
             "length": length,
-            "link": f"{self.masses[m1].name} < -- > {self.masses[m2].name}"
+            "link": f"{self.masses[m1].name} < -- > {self.masses[m2].name}",
+            "m1": self.masses[m1].name,
+            "m2": self.masses[m2].name
         }
     
     def add_damper(self, name: str, c: float, spring: str) -> None:
@@ -354,12 +358,13 @@ class MSDNet():
 
             
     
-    def run_network(self, canvas_size: tuple[int, int], use_hammer: bool = False, clip_pos: tuple|None = None, acc_is_costant: bool = False) -> dict():
+    def run_network(self, canvas_size: tuple[int, int], use_hammer: bool = False, clip_pos: tuple|None = None, acc_is_costant: bool = False) -> dict["MSDNet"]:
 
         """
         set network in motion
 
         same as activate network, but it is not a Generator
+        return -> dict[MSDNet]
         """
         
         self.__in_motion(use_hammer=use_hammer, clip_pos=clip_pos, acc_is_costant=acc_is_costant)
@@ -470,51 +475,38 @@ class MSDNet():
 
         animation = FuncAnimation(fig, update, interval=refresh_time, repeat=False)
         plt.show()
-
-
-
-class Cloth():
-
-    def __init__(self, n_masses: int, levels: int, center: tuple[float, float], scale: tuple[float, float]) -> None:
-
-        """
-        create Cloth object
-
-        n_masses: int, the number of masses
-        levels: int, the number of levels
-        center: tuple[float, float], center of cloth in cartesian coordinates between 0 and 1
-        scale: tuple[float, flaot], scale factor on xy axis (must be between 0 and 1)
-     
-        """
-        
-        if n_masses%levels != 0:
-            raise("[ERROR] the number of masses must be a multiple of the levels number!")
-            exit(0)
-        
-        self.n_masses = n_masses
-        self.levels = levels
-        self.center = center
-        self.size = scale
-        self.xlen = self.size[0]/(n_masses + 1)
-        self.ylen = self.size[1]/(n_masses + 1)
     
-    def generate_cloth(self, m: float, d: float, k: float, c: float, r: float) -> MSDNet:
+    def render(self, surface: pg.Surface, canvas_size: tuple[int, int]) -> None:
 
-        net = MSDNet()
+        """
+        render and show network with pygame
 
-        # add masses
-        dy = self.ylen
-        for i in range(self.levels):
-            dx = self.xlen
-            for j in range(self.n_masses):
-                net.add_mass(name=f"l{i}m{j}", m=m, pos=[dx, dy, 0], r=r, d=d, anchored=False)
-                if i == 0:
-                    net.lock_unlock_mass(name=f"l{i}m{j}", anchored=True)
-                dx += self.xlen
-            dy += self.ylen
+        surface: pg.Surface
+        canvas_size: tuple[int, int], canvas size
+        """
+
+
+        w = canvas_size[0]
+        h = canvas_size[1]
+
+        for mass in self.motion:
+            m = self.motion[mass]
+            x = m["x"] * w
+            y = m["y"] * h
+
+            pg.draw.circle(surface=surface, color=(255, 0, 0), center=(x, y), radius=self.masses[mass].radius)
         
-        return net
+        for spring in self.spring_params:
+            m1_name= self.spring_params[spring]["m1"]
+            m2_name = self.spring_params[spring]["m2"]
 
+            m1 = self.motion[m1_name]
+            m2 = self.motion[m2_name]
+
+            x1, y1 = m1["x"] * w, m1["y"] * h
+            x2, y2 = m2["x"] * w, m2["y"] * h
+
+            pg.draw.line(surface, color=(255, 255, 255), start_pos=(x1, y1), end_pos=(x2, y2))
 
         
 

@@ -28,7 +28,7 @@ def limit(v: list, max_value: float) -> list:
 
 class Mass():
 
-    def __init__(self, name: str, m: float, pos: list[float], d: float, radius: float, anchored: bool = False, g: list[float, float, float] = [0.0, 0.0, 0.0]) -> None:
+    def __init__(self, name: str, m: float, pos: list[float], d: float, radius: float, g: list[float, float, float], anchored: bool = False) -> None:
 
         """
         Create mass
@@ -45,7 +45,7 @@ class Mass():
         self.d = d
         self.radius = radius
         self.anchored = anchored
-        self.g = np.array(g) * self.m
+        self.g = np.array(g, dtype=float) * self.m
 
         p = np.array(pos, dtype=float)
         self.start_pos = p.copy()

@@ -25,12 +25,12 @@ L = l
 M = 50
 D = 0.981
 K = 10
-C = 10
+C = 5
 R = 5
 g = [0, 0.00001, 0]
 
 net.add_gravity(g=g)
-net.dt(DT)
+net.add_dt(DT)
 
 # masses level 1
 p = l
@@ -102,28 +102,30 @@ pos_mass_motion = [None for _ in range(N)]
 run = True
 while run:
 
-    network = net.run_network(use_hammer=False, acc_is_costant=False, clip_pos=(0, 1), canvas_size=win)
 
     for event in pg.event.get():
         if event.type == pg.QUIT:
             run = False
             pg.quit()
 
-    for i, mass in enumerate(network):
-        m = network[mass]
-        x = m["x"] * w
-        y = m["y"] * h
-        pos_mass_motion[i] = (x, y)
+    network = net.run_network(use_hammer=False, acc_is_costant=False, clip_pos=(0, 1), canvas_size=win)
+    net.render(surface=screen, canvas_size=(w, h))
+    
+    # for i, mass in enumerate(network):
+    #     m = network[mass]
+    #     x = m["x"] * w
+    #     y = m["y"] * h
+    #     pos_mass_motion[i] = (x, y)
         
         
 
-    for i in range(N):
-        step = N/3
-        pg.draw.circle(surface=screen, color=(255, 0, 0), center=pos_mass_motion[i], radius=R)
-        if i%step != 0:
-            pg.draw.line(surface=screen, color=(255, 255, 255), start_pos=pos_mass_motion[i - 1], end_pos=pos_mass_motion[i])
-        if i < N - step:
-            pg.draw.line(surface=screen, color=(255, 255, 255), start_pos=pos_mass_motion[i], end_pos=pos_mass_motion[i + int(step)])
+    # for i in range(N):
+    #     step = N/3
+    #     pg.draw.circle(surface=screen, color=(255, 0, 0), center=pos_mass_motion[i], radius=R)
+    #     if i%step != 0:
+    #         pg.draw.line(surface=screen, color=(255, 255, 255), start_pos=pos_mass_motion[i - 1], end_pos=pos_mass_motion[i])
+    #     if i < N - step:
+    #         pg.draw.line(surface=screen, color=(255, 255, 255), start_pos=pos_mass_motion[i], end_pos=pos_mass_motion[i + int(step)])
 
 
     clock.tick(fps)
