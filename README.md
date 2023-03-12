@@ -134,7 +134,7 @@ C = 10
 R = 3
 g = (0, 0.000002, 0)
 
-cloth = Cloth(n_masses=30, levels=3, origin=(0, 0.3), scale=(1, 0.5), g=g, dt=1)
+cloth = Cloth(n_masses=30, levels=10, origin=(0, 0.3), scale=(1, 0.1), g=g, dt=1)
 net = cloth.generate_cloth(m=M, d=D, k=K, c=C, r=R)
 
 run = True
