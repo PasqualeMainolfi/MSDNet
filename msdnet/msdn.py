@@ -3,16 +3,10 @@ MSDN (Mass-Spring-Damper Network)
 
 """
 
-from typing import Generator
-from msdnet.network_components import Mass, Spring, Damper, Hammer
-from msdnet.scanner import Scanner
+from msdnet.network_components import Mass, Spring, Damper
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 from msdnet.interact import Interact
 import pygame as pg
-
-# TODO: add method remove_mass, remove_spring
 
 class MSDNet():
 
@@ -30,13 +24,10 @@ class MSDNet():
 
         self.motion = dict()
 
-        self.hammers = dict()
-
-        self.path = None
-
         self.g = np.zeros(3)
         self.dt = 0.1
     
+
     def add_dt(self, dtime: float) -> None:
 
         """
@@ -47,9 +38,11 @@ class MSDNet():
         
         self.dt = dtime
     
+
     def add_gravity(self, g: list[float, float, float]) -> None:
         self.g = np.array(g, dtype=float)
     
+
     def add_mass(self, name: str, m: float, pos: list[float], d: float, r: float, anchored: bool = False) -> None:
 
         """
@@ -81,7 +74,8 @@ class MSDNet():
         }
         
         self.motion[name] = {"x": pos[0], "y": pos[1], "z": pos[2]}
-        
+
+
     def lock_unlock_mass(self, name: str, anchored: bool):
 
         """
@@ -116,6 +110,7 @@ class MSDNet():
             "m2": self.masses[m2].name
         }
     
+
     def add_damper(self, name: str, c: float, spring: str) -> None:
 
         """
@@ -130,6 +125,7 @@ class MSDNet():
         self.dampers[name] = damper
         self.spring_params[spring].update({"damper": name, "c": c})
 
+
     def add_external_force(self, name: str, direction: list[float], masses: str|list[str] = "all", mode: str = "always_on") -> None:
 
         """
@@ -138,7 +134,7 @@ class MSDNet():
         name: str, force name
         direction: list[float] -> [x, y, z]
         masses: str|list[str], "all" or list of masses. If "all", force is applied on all masses. It is possible, or, to pass the list of masses to which to apply the force
-        mode: str, types of hammer shots ["one_shot", "always_on", "rand_shot"]:
+        mode: str, shot -> ["one_shot", "always_on", "rand_shot"]:
             one_shot -> apply force only once (first iteration)
             always_on -> apply force at each iteration
             rand_shot -> apply force probabilistically
@@ -153,6 +149,7 @@ class MSDNet():
 
         self.external_forces[name] = params
     
+
     def __generate_external_force(self):
 
         for force in self.external_forces:
@@ -176,119 +173,7 @@ class MSDNet():
                     self.external_forces[force]["force"] = direc * self.external_forces[force]["start_force"]
 
     
-    def add_hammer(self, hammer_name: str, shape: str = "rand", mode: str = "one_shot", **kwargs) -> None:
-
-        """
-        add hammer to the network
-
-        hammer_name: str, hammer name
-        hammer_path: list[tuple], masses to hit -> [(mass_name, coordinate), ...] 
-        shape: str, the shaope of the hammer head -> ["rand", "sine", "sinc", "sig"]. If sig, mode = "always_on"
-        mode: str, types of hammer shots ["one_shot", "always_on", "rand_shot"]:
-            one_shot -> apply force only once (first iteration)
-            always_on -> apply force at each iteration
-            rand_shot -> apply force probabilistically (see kwargs -> shot_prob)
-        kwargs:
-            path_to_sig: str, signal directory path -> sig shape
-            sr: int, signal sample rate -> sig shape
-            skip: float, skip time loaded audio signal, in sec. -> sig shape
-            rand_path: bool, if True it change the hammer path randomly at each iteration, if False the path is always the same
-            rand_path_coordinate: str, if True it change the hammer path coordinates randomly at each iteration, if False the coordinate is "xyz"
-            shot_prob: float, 0.0 - 1.0 the hammer shot probability at each iteration in mode rand_shot
-        """
-
-        hammer = Hammer(masses_network=self.masses)
-        
-        try:
-            assert mode in ["one_shot", "always_on", "rand_shot"]
-            assert shape in ["sine", "sinc", "rand", "sig"] 
-        except:
-            print("[ERROR] mode or shape not yet implemented!\n")
-            exit(0)
-        
-        hammer.mode = mode
-        hammer.shape = shape
-
-        params = {
-            "path_to_sig": "", 
-            "sr": 44100, 
-            "skip": 0,
-            "rand_path": False,
-            "rand_path_coordinate": "xyz",
-            "shot_prob": 0.01
-        }
-        
-        params = params | kwargs
-
-        if shape == "sig":
-            path_to_sig = params["path_to_sig"]
-            sr = params["sr"]
-            skip = params["skip"]
-            hammer.mode = "always_on"
-            hammer.hammer_audio_signal = (path_to_sig, sr)
-            hammer.skip_time = int(skip * sr)
-
-        hammer.hammer_rand_path = params["rand_path"]
-        hammer.hammer_rand_path_coordinate = params["rand_path_coordinate"]
-        hammer.shot_prob = params["shot_prob"]
-
-        self.hammers[hammer_name] = {"hammer": hammer, "shot": True}
-        # print(hammer.__dict__)
-
-    
-    def add_hammer_path(self, hammer_name: str, path: list[tuple]) -> None:
-
-        """
-        add hammer path
-
-        hammer_name: str, hammer name
-        path: list[tuple], masses hammer path
-        """
-
-        self.hammers[hammer_name]["hammer"].hammer_path = path
-
-    def add_path(self, path: list[tuple]) -> None:
-
-        """
-        add path
-
-        path: list[tuple], masses path
-        """
-
-        self.path = path
-    
-    def generate_random_path(self, path_length: int, coordinate: str = "xyz") -> list[tuple]:
-
-        """
-        generate random path
-
-        path_length: int, length of the path (< mass number) 
-        coordinate: str, [x, y, z, xyz]
-
-        return: list[tuple]
-        """
-
-        coord = ["x", "y", "z", "xyz"]
-
-        try:
-            assert coordinate in coord
-            assert path_length <= len(self.masses)
-        except:
-            print("[ERROR] path_length must be less than number of masses; coordinate must be x, y, z or xyz or !\n")
-            exit(0)
-
-        path_coord = list(self.masses.keys())
-        path = []
-        i = 0
-        while i < path_length:
-            m = np.random.choice(path_coord)
-            c = np.random.choice(coord[:-1]) if coordinate == "xyz" else coordinate
-            path.append((m, c))
-            path_coord.pop(path_coord.index(m))
-            i += 1
-        return path
-    
-    def __reset_network(self) -> None:
+    def reset_network(self) -> None:
 
         """
         reset network... take the network to zero time
@@ -301,35 +186,14 @@ class MSDNet():
             for coord in self.masses_motion[mass]:
                 self.masses_motion[mass][coord] = []
     
-    def __in_motion(self, use_hammer, clip_pos, acc_is_costant=False) -> None:
+
+    def __in_motion(self, clip_pos, acc_is_costant=False) -> None:
 
         for spring in self.springs:
             self.springs[spring].generate_spring_force()
 
         for damper in self.dampers:
             self.dampers[damper].generate_drag_force()
-        
-        if use_hammer:
-            for hammer_name in self.hammers:
-                hammer = self.hammers[hammer_name]["hammer"]
-
-                try:
-                    assert hammer.hammer_path is not None
-                except:
-                    print("[ERROR] hammer path not found!\n")
-                    exit(0)
-
-                if self.hammers[hammer_name]["shot"]:
-                    hammer.generate_hammer_force()
-                    if hammer.mode == "one_shot":
-                        self.hammers[hammer_name]["shot"] = False
-                if hammer.mode == "rand_shot":
-                    self.hammers[hammer_name]["shot"] = bool(np.random.binomial(1, p=hammer.shot_prob))
-                    if self.hammers[hammer_name]["shot"] and hammer.hammer_rand_path:
-                        hammer.hammer_path = self.generate_random_path(
-                            path_length=np.random.randint(low=1, high=len(self.masses) + 1),
-                            coordinate=hammer.hammer_rand_path_coordinate
-                        )
         
         if self.external_forces:
             self.__generate_external_force()
@@ -342,140 +206,22 @@ class MSDNet():
             self.masses[mass].update_position(dt=self.dt, acc_is_costant=acc_is_costant, clip_pos=clip_pos)
 
     
-    def activate_network(self, use_hammer: bool = False, clip_pos: tuple|None = None, acc_is_costant: bool = False) -> Generator:
-
-        """
-        set the network in motion
-
-        use_hammer: bool, if True use the hammer
-        clip_pos: tuple or None, clip position in a range (min, max)
-
-        return: Dict Generator (network motion -> dict[mass_name][coordinate])
-        """
-
-        while True:
-            yield self.motion
-            self.__in_motion(use_hammer=use_hammer, clip_pos=clip_pos, acc_is_costant=acc_is_costant)
-
-            
-    
-    def run_network(self, use_hammer: bool = False, clip_pos: tuple|None = None, acc_is_costant: bool = False) -> dict["MSDNet"]:
+    def run_network(self, clip_pos: tuple|None = None, acc_is_costant: bool = False) -> dict["MSDNet"]:
 
         """
         set network in motion
 
         same as activate network, but it is not a Generator
-        return -> dict[MSDNet]
+        return -> dict[mass][pos] -> current position of all masses. 
+            The dictionary contains all the masses and, each mass is a dictionary 
+            which contains x, y, z
         """
         
-        self.__in_motion(use_hammer=use_hammer, clip_pos=clip_pos, acc_is_costant=acc_is_costant)
+        self.__in_motion(clip_pos=clip_pos, acc_is_costant=acc_is_costant)
         return self.motion
 
-        
-    def scan_network(self, masses_motion: Generator, smooth: bool = False, **kwargs) -> Generator:
-
-        """
-        scan path in a network
-
-        masses_motion: Generator, generate this input from scan_network method
-        smooth: bool, if True smooth motion
-        kwargs: wlen, if smooth == True, set filter window length (moving average). This param must be less than number of masses
-
-        return: Array Generator -> [net_motion: 2D vector of all network motion. ROW = number of masses, COL = 3 (x, y, z), path_motion: 1D vector path network motion]
-        """
-        
-        scan = Scanner(path=self.path)
-
-        kernel_len = {"wlen": 1}
-        kernel_len = kernel_len|kwargs
-
-        if smooth:
-            try:
-               assert kernel_len["wlen"] < len(self.masses)
-            except:
-                print("[ERROR] wlen must be less than a number of masses!\n")
-                exit(0)
-        
-        while True:
-            motion = next(masses_motion)
-            net_scan, path_scan = scan.rtscan(masses_motion=motion, smooth=smooth, wlen=kernel_len["wlen"])
-
-            if smooth:
-                for m, mass in enumerate(self.masses):
-                    if self.masses[mass].anchored:
-                        for i in range(3):
-                            net_scan[i, m] = self.masses[mass].start_pos[i]
-                
-                if path_scan is not None:
-
-                    index = {
-                        "x": 0,
-                        "y": 1,
-                        "z": 2
-                    }
-                    
-                    for i, element in enumerate(self.path):
-                        mass, coord = element[0], element[1]
-                        if self.masses[mass].anchored:
-                            path_scan[i] = self.masses[mass].start_pos[index[coord]]
-
-            yield (net_scan, path_scan)
-
-    def show_network_in_motion(self, table: Generator,  axes_lim: tuple, refresh_time: int = 10) -> None:
-
-        """
-        plot network animation
-
-        table: Generator, function table generator
-        axes_lim: tuple, axes limit
-        refresh_time: int, refresh time
-        """
-
-        fig, ax = plt.subplots(figsize=(15, 10))
-        ax = plt.axes(projection="3d")
-
-        def update(i):
-            t = next(table)
-            x, y, z = t[0][0], t[0][1], t[0][2]
-            ax.clear()
-            ax.set_title(f"NETWORK IN MOTION [N = {len(x)} MASSES]", weight="bold")
-            ax.set_ylim(axes_lim)
-            ax.set_zlim(axes_lim)
-            ax.plot(x, y, z, c="k", lw=0.7, marker="o", linestyle="dashed", markerfacecolor="r")
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
-            ax.set_zlabel("Z")
-        
-        animation = FuncAnimation(fig, update, interval=refresh_time, repeat=False)
-        plt.show()
     
-    def show_path_in_motion(self, table: Generator,  axes_lim: tuple, refresh_time: int = 10) -> None:
-
-        """
-        plot path animation
-
-        table: Generator, function table generator
-        axes_lim: tuple, axes limit
-        refresh_time: int, refresh time
-        """
-
-        fig, ax = plt.subplots(figsize=(15, 10))
-
-        def update(i):
-            t = next(table)
-            y = t[1]
-            x = [i for i in range(len(y))] 
-            ax.clear()
-            ax.set_title(f"PATH IN MOTION [N = {len(x)} MASSES]", weight="bold")
-            ax.set_ylim(axes_lim)
-            ax.plot(x, y, c="k", lw=0.3, marker="o", linestyle="dashed", markerfacecolor="r")
-            ax.set_xlabel("X")
-            ax.set_ylabel("Y")
-
-        animation = FuncAnimation(fig, update, interval=refresh_time, repeat=False)
-        plt.show()
-    
-    def render(self, canvas_size: tuple[int, int], clip_pos=tuple[float, float], fps=int) -> None:
+    def render(self, canvas_size: tuple[int, int], clip_pos: tuple[float, float], fps: int = 60, acc_is_costant: bool = False) -> None:
 
         """
         render and show network with pygame
@@ -491,13 +237,13 @@ class MSDNet():
         win = (w, h)
         screen = pg.display.set_mode(win)
         clock = pg.time.Clock()
-        fps = 60
+        fps = fps
 
         interact = Interact(network=self.motion, masses=self.masses, canvas_size=canvas_size)
 
         run = True
         while run:
-            self.run_network(clip_pos=clip_pos)
+            self.run_network(clip_pos=clip_pos, acc_is_costant=acc_is_costant)
 
             for event in pg.event.get():
                 if event.type == pg.QUIT:

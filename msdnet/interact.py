@@ -22,7 +22,7 @@ class Interact():
             mouse_pos = np.array([mouse_pos[0], mouse_pos[1]], dtype=float)
             dist = np.sqrt(np.sum(np.square(curr_pos - mouse_pos)))
 
-            if dist < self.masses[mass].radius * 2:
+            if dist < self.masses[mass].radius:
                 if self.mouse.get_pressed()[2]:
                     self.masses[mass].anchored = False
 

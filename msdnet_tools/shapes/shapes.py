@@ -1,4 +1,5 @@
 from msdnet import MSDNet
+import math
 
 class Shape:
     def __init__(self, n_masses: int, origin: tuple[float, float], scale: tuple[float, float], g: tuple[float, float, float], dt: float) -> None:
@@ -42,7 +43,7 @@ class Cloth(Shape):
         self.xlen = self.size[0]/(self.n_masses + 1)
         self.ylen = self.size[1]/(levels + 1)
 
-    def generate_cloth(self, m: float, d: float, k: float, c: float, r: float) -> dict[MSDNet]:
+    def generate_cloth_msdnet(self, m: float, d: float, k: float, c: float, r: float) -> dict[MSDNet]:
 
         """
         generate network
@@ -97,7 +98,7 @@ class String(Shape):
 
         self.xlen = self.size[0]/(self.n_masses + 1)
     
-    def generate_string(self, m: float, d: float, k: float, c: float, r: float, anchored_mass: list[int] = []) -> dict[MSDNet]:
+    def generate_string_msdnet(self, m: float, d: float, k: float, c: float, r: float, anchored_mass: list[int] = []) -> dict[MSDNet]:
 
         """
         generate network
@@ -129,6 +130,55 @@ class String(Shape):
             string.add_damper(name=f"d{i}", c=c, spring=f"s{i}")
 
         return string
+
+class Circle(Shape):
+
+    def __init__(self, n_masses: int, origin: tuple[float, float], scale: tuple[float, float], g: tuple[float, float, float], dt: float) -> None:
+        super().__init__(n_masses, origin, scale, g, dt)
+
+        self.circle_step = 2 * math.pi/(self.n_masses)
+    
+    def generate_circle_msdnet(self, m: float, d: float, k: float, c: float, r: float, anchored_mass: list[int] = []) -> dict[MSDNet]:
+
+        """
+        generate network
+
+        m: float, weight
+        d: float, damping
+        k: float, stiffness
+        c: float, drag
+        r: float, radius of mass
+        anchored_mass: list[int], specify wich masses you want to be anchored. For example, if you want mass 1 and mass 3 -> [1, 3] (from 1 to n_masses)
+
+        """
+        
+        circle = MSDNet()
+        circle.add_gravity(self.g)
+        circle.add_dt(self.dt)
+
+        for i in range(self.n_masses):
+            x = (self.size[0]/2) * math.cos(self.circle_step * i)
+            y = (self.size[1]/2) * math.sin(self.circle_step * i)
+            circle.add_mass(name=f"m{i}", m=m, pos=[x + self.origin[0], y + self.origin[1], 0], r=r, d=d, anchored=False)
+        
+        
+        for i in range(self.n_masses):
+            p1 = circle.masses[f"m{i}"].start_pos
+            p2 = circle.masses[f"m{(i + 1)%self.n_masses}"].start_pos
+            dist = math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+            circle.add_spring(name=f"s{i}", k=k, length=dist, m1=f"m{i}", m2=f"m{(i + 1)%self.n_masses}")
+            circle.add_damper(name=f"d{i}", c=c, spring=f"s{i}")
+        
+        circle.add_mass(name=f"center", m=m, pos=[self.origin[0], self.origin[1], 0], r=r, d=d, anchored=True)
+        for i in range(self.n_masses):
+            p1 = circle.masses[f"center"].start_pos
+            p2 = circle.masses[f"m{i}"].start_pos
+            dist = math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+            circle.add_spring(name=f"sc{i}", k=k, length=dist, m1=f"center", m2=f"m{i}")
+            circle.add_damper(name=f"dc{i}", c=c, spring=f"sc{i}")
+        
+        return circle
+
 
 
 
